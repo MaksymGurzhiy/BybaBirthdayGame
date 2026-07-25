@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Буба 2 — Похищение на Дне Рождения 🎂</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+        font-family: 'Courier New', monospace;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        color: white;
+    }
+
+    #gameWrap {
+        position: relative;
+        width: min(960px, 97vw);
+    }
+
+    canvas#game {
+        display: block;
+        width: 100%;
+        image-rendering: pixelated;
+        border: 4px solid rgba(255,255,255,0.6);
+        border-radius: 10px;
+        background: #79c06e;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+
+    #controlsHint {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 15px;
+        opacity: 0.85;
+    }
+
+    /* ---- Задание (квест) ---- */
+    #questHud {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: rgba(0,0,0,0.55);
+        border: 2px solid rgba(255,255,255,0.5);
+        border-radius: 10px;
+        padding: 8px 14px;
+        font-size: 14px;
+        max-width: 420px;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    /* ---- Диалоговое окно (Undertale-стиль) ---- */
+    #dialogueBox {
+        display: none;
+        position: absolute;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        width: 92%;
+        max-width: 720px;
+        min-height: 118px;
+        background: black;
+        border: 4px solid white;
+        border-radius: 4px;
+        padding: 14px 18px 26px 18px;
+        cursor: pointer;
+        z-index: 10;
+    }
+    #dlgName {
+        color: #ffeb3b;
+        font-size: 17px;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+    #dlgText {
+        color: white;
+        font-size: 19px;
+        line-height: 1.6;
+        word-wrap: break-word;
+    }
+    #dlgCont {
+        position: absolute;
+        bottom: 6px;
+        right: 16px;
+        font-size: 13px;
+        opacity: 0.7;
+        animation: blink 1s infinite;
+    }
+    @keyframes blink { 0%,50%{opacity:.7} 51%,100%{opacity:0} }
+
+    /* ---- Оверлеи ---- */
+    .overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        text-align: center;
+    }
+
+    #titleScreen {
+        display: flex;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    #titleScreen h1 {
+        font-size: 64px;
+        text-shadow: 3px 3px 12px rgba(0,0,0,0.4);
+        margin-bottom: 6px;
+    }
+    #titleScreen h2 {
+        font-size: 26px;
+        margin-bottom: 18px;
+        color: #ffd9ec;
+    }
+    #titleScreen p {
+        font-size: 17px;
+        opacity: 0.9;
+        max-width: 560px;
+        line-height: 1.6;
+        margin-bottom: 26px;
+    }
+
+    .btn {
+        font-size: 20px;
+        padding: 14px 42px;
+        background: white;
+        color: #667eea;
+        border: 2px solid white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+        font-family: 'Courier New', monospace;
+    }
+    .btn:hover { background:#667eea; color:white; transform:scale(1.06); }
+
+    .heart-bg {
+        position: absolute;
+        font-size: 22px;
+        opacity: 0.35;
+        animation: fall 11s linear infinite;
+        top: -40px;
+        pointer-events: none;
+    }
+    @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+
+    /* ---- Визитка ---- */
+    #cardScreen { background: rgba(0,0,0,0.75); }
+    #bizCard {
+        background: #fdf8ee;
+        color: #33262e;
+        border-radius: 14px;
+        padding: 28px 34px;
+        max-width: 460px;
+        width: 92%;
+        transform: rotate(-2deg);
+        box-shadow: 0 14px 50px rgba(0,0,0,0.5);
+        border: 3px solid #d9c9a8;
+    }
+    #bizCard h2 { font-size: 26px; color: #7a2f3b; margin-bottom: 4px; }
+    #bizCard .slogan { font-size: 14px; font-style: italic; color: #7c6a5a; margin-bottom: 16px; }
+    #bizCard .row { font-size: 16px; margin: 8px 0; text-align: left; }
+    #cardPhotoWrap { margin: 10px auto; }
+    #cardPhoto {
+        image-rendering: pixelated;
+        border: 3px solid #d9c9a8;
+        border-radius: 8px;
+        background: #cfe3f5;
+    }
+    #cardPhotoWrap .cap { font-size: 12px; color: #8a7a68; margin-top: 4px; }
+    #cardScreen .btn { margin-top: 24px; }
+
+    /* ---- Продолжение следует ---- */
+    #tbcScreen { background: rgba(20, 8, 26, 0.93); }
+    #tbcScreen h1 {
+        font-size: 52px;
+        color: #ff9ecb;
+        text-shadow: 0 0 24px rgba(255,120,180,0.55);
+        margin-bottom: 14px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+    #tbcScreen p { font-size: 20px; max-width: 540px; line-height: 1.7; margin-bottom: 26px; }
+</style>
+</head>
+<body>
+
+<div id="gameWrap">
+    <canvas id="game" width="960" height="640"></canvas>
+    <div id="questHud">🐾 Задание: осмотрись в городе котиков</div>
+    <div id="dialogueBox">
+        <div id="dlgName"></div>
+        <div id="dlgText"></div>
+        <div id="dlgCont">▼ E / клик</div>
+    </div>
+</div>
+<div id="controlsHint">WASD / стрелки — ходить &nbsp;·&nbsp; E или Пробел — говорить и действовать</div>
+
+<!-- Титульный экран -->
+<div id="titleScreen" class="overlay">
+    <h1>БУБА 2</h1>
+    <h2>🎂 Похищение на Дне Рождения 🏍️</h2>
+    <p>Продолжение приключений великой кисы Бубы Щони.<br>
+       Котик-байкер обещал вернуться... и он вернулся.<br><br>
+       Управление: WASD / стрелки. Говорить — E или Пробел.</p>
+    <button class="btn" onclick="startGame()">Начать путешествие 🐾</button>
+</div>
+
+<!-- Визитка злодея -->
+<div id="cardScreen" class="overlay">
+    <div id="bizCard">
+        <h2>😼 КОТИК-БАЙКЕР</h2>
+        <div class="slogan">— ваш личный злодей для самых злостных злодеяний™ —</div>
+        <div id="cardPhotoWrap">
+            <canvas id="cardPhoto" width="120" height="120"></canvas>
+            <div class="cap">фото для клиентов (доброе)</div>
+        </div>
+        <div class="row">☎ Телефон: <b>8-800-ЗЛО-ДЕЙ</b></div>
+        <div class="row">🏰 Адрес: <b>Королевство злодеяний,<br>&nbsp;&nbsp;&nbsp;Потайной лес, квартира 19</b></div>
+    </div>
+    <button class="btn" onclick="closeCard()">Спрятать визитку 💼</button>
+</div>
+
+<!-- Продолжение следует -->
+<div id="tbcScreen" class="overlay">
+    <h1>ПРОДОЛЖЕНИЕ СЛЕДУЕТ...</h1>
+    <p>Котик-маг скоро вернётся, и Буба Щоня отправится в Потайной лес —
+       спасать Мекаса и свой подарок! ❤️</p>
+    <button class="btn" onclick="closeTbc()">Погулять по городу 🐾</button>
+</div>
+
+<audio id="musicGood" src="music_good.wav" loop></audio>
+<audio id="musicBad" src="music_bad.wav" loop></audio>
+
+<script>
+'use strict';
+
+// ============================== БАЗА ==============================
+const TILE = 32, WORLD_W = 1536, WORLD_H = 960, VIEW_W = 960, VIEW_H = 640;
+const cv = document.getElementById('game');
+const g = cv.getContext('2d');
+let now = 0;
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
+
+function rr(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+// ============================== ПИКСЕЛЬ-СПРАЙТЫ ==============================
+const OUT = '#42324a';
+
+function buildSprite(rows, palette, scale) {
+    scale = scale || 3;
+    const h = rows.length, w = Math.max(...rows.map(r => r.length));
+    const c = document.createElement('canvas');
+    c.width = w * scale; c.height = h * scale;
+    const cg = c.getContext('2d');
+    rows.forEach((row, y) => {
+        for (let x = 0; x < row.length; x++) {
+            const col = palette[row[x]];
+            if (col) { cg.fillStyle = col; cg.fillRect(x * scale, y * scale, scale, scale); }
+        }
+    });
+    return c;
+}
+function flipSprite(spr) {
+    const c = document.createElement('canvas');
+    c.width = spr.width; c.height = spr.height;
+    const cg = c.getContext('2d');
+    cg.translate(spr.width, 0); cg.scale(-1, 1);
+    cg.drawImage(spr, 0, 0);
+    return c;
+}
+
+// Базовая киса (вид спереди, 13 пикселей шириной)
+const CAT = [
+    '.oo.......oo.',
+    '.osso...osso.',
+    '.offoooooffo.',
+    'offfffffffffo',
+    'offefffffeffo',
+    'ofsfffnfffsfo',
+    'offffofoffffo',
+    '.offfffffffo.',
+    '.offwwwwwffo.',
+    '.offwwwwwffo.',
+    '..off...ffo..',
+    '..oo.....oo..',
+];
+function catRows(mod) { // mod: {row: 'строка'} — замены строк базовой кисы
+    const rows = CAT.slice();
+    if (mod) for (const k in mod) rows[+k] = mod[k];
+    return rows;
+}
+
+// Буба Щоня — белая киса с розовым бантиком
+const ROWS_SHONYA = catRows({ 0: '.oo......bbb.', 1: '.osso..obbbb.', 2: '.offooooobbo.' });
+const PAL_SHONYA = { o: OUT, e: '#3b2d42', n: '#f286ad', f: '#fbf7f8', w: '#ffeef6', s: '#ffb9d0', b: '#ff70a6' };
+
+// Буба Мекас — рыжий котик с ростком на голове (как на картинке!)
+const ROWS_MEKAS = ['....gg.gg....', '......d......'].concat(catRows());
+const PAL_MEKAS = { o: '#5a3550', e: '#4a2c40', n: '#d9603f', f: '#f6a94a', w: '#fbc97e', s: '#ef8f3c', g: '#7cc45c', d: '#3f7d34' };
+
+// Котик-байкер — серый полосатый, чёрная куртка, тёмные очки
+const ROWS_BIKER = catRows({
+    3: 'offtfffftfffo',
+    4: 'ofbbbfffbbbfo',
+    8: '.ojjjjjjjjjo.',
+    9: '.ojjjjzjjjjo.',
+});
+const PAL_BIKER = { o: '#2e2733', e: '#2e2733', n: '#c96a6a', f: '#9aa2ab', t: '#79828c', s: '#77808a', j: '#2c2c35', z: '#c6ccd4', b: '#15151c', w: '#9aa2ab' };
+
+// «Доброе» фото байкера для визитки — без очков, с цветочком
+const ROWS_BIKER_KIND = catRows({ 0: '.oo......ppp.', 1: '.osso..oppyp.', 2: '.offoooooppo.', 3: 'offtfffftfffo' });
+const PAL_BIKER_KIND = { o: '#2e2733', e: '#3b2d42', n: '#e88aa8', f: '#9aa2ab', t: '#79828c', s: '#e8a8b8', w: '#c3c9d1', p: '#ff8fb3', y: '#ffd166' };
+
+// Котик-лавочник — коричневый, зелёный фартук
+const ROWS_SHOPKEEPER = catRows();
+const PAL_SHOPKEEPER = { o: OUT, e: '#3b2d42', n: '#b3603e', f: '#c99a63', w: '#5e935e', s: '#a8763e' };
+
+// Горожане
+const PAL_BARISTA = { o: OUT, e: '#3b2d42', n: '#d98a6a', f: '#f1e0bf', w: '#faf0dc', s: '#e8b88a' };
+const ROWS_SLEEPER = catRows({ 4: 'off-fffff-ffo' });
+const PAL_SLEEPER = { o: '#3a3f46', e: '#3a3f46', '-': '#3a3f46', n: '#a87888', f: '#707880', w: '#8a929a', s: '#5c646c' };
+const PAL_DANCER = { o: OUT, e: '#3b2d42', n: '#e8a0a8', f: '#f6f4ee', w: '#fdfcf9', s: '#e8d8d8' };
+const ROWS_YARN = catRows({ 3: 'offtfffftfffo' });
+const PAL_YARN = { o: OUT, e: '#3b2d42', n: '#d98a6a', f: '#f3ead9', t: '#e89a4f', w: '#fbf5ea', s: '#e8b88a' };
+
+function makeActor(rows, pal, scale, x, y) {
+    const spr = buildSprite(rows, pal, scale || 3);
+    return { x: x || 0, y: y || 0, spr, sprF: flipSprite(spr), flip: false, visible: true, moving: false, bob: Math.random() * 6.28 };
+}
+
+// ============================== АКТЁРЫ ==============================
+const player = makeActor(ROWS_SHONYA, PAL_SHONYA, 3, 200, 480);
+const mekas = makeActor(ROWS_MEKAS, PAL_MEKAS, 3); mekas.visible = false;
+const bikerCatSpr = buildSprite(ROWS_BIKER, PAL_BIKER, 3);
+const biker = { x: 0, y: 0, flip: false, visible: false, moving: false, riding: true };
+const shopkeeper = makeActor(ROWS_SHOPKEEPER, PAL_SHOPKEEPER, 3, 544, 402); shopkeeper.visible = false; shopkeeper.mark = false;
+const barista = makeActor(CAT, PAL_BARISTA, 3, 352, 438);
+const sleeper = makeActor(ROWS_SLEEPER, PAL_SLEEPER, 3, 262, 688);
+const dancer = makeActor(CAT, PAL_DANCER, 3, 866, 706);
+const yarnKitten = makeActor(ROWS_YARN, PAL_YARN, 2.5, 160, 830);
+
+const bag = { x: 0, y: 0, visible: false, attached: false, shakeUntil: 0 };
+const card = { x: 0, y: 0, visible: false, taken: false };
+
+// ============================== СОСТОЯНИЕ ИГРЫ ==============================
+const game = { mode: 'title', quest: 'explore', focus: player };
+const QUEST_TEXT = {
+    explore: '🐾 Задание: осмотрись в городе котиков и поговори с жителями',
+    card: '🐾 Задание: подними то, что выронил байкер (подойди и нажми E)',
+    shopkeeper: '🐾 Задание: поговори с котиком-лавочником ❗',
+    mage: '🐾 Задание: найди дом котика-мага — ниже по улице, крыша со звёздами ✦',
+    done: '❤ Задание: ждать продолжения... а пока можно гулять!',
+};
+function setQuest(q) {
+    game.quest = q;
+    document.getElementById('questHud').textContent = QUEST_TEXT[q];
+}
+
+// ============================== МУЗЫКА ==============================
+const musicGood = document.getElementById('musicGood');
+const musicBad = document.getElementById('musicBad');
+function playGood() { musicBad.pause(); musicBad.currentTime = 0; musicGood.play().catch(() => {}); }
+function playBad() { musicGood.pause(); musicGood.currentTime = 0; musicBad.play().catch(() => {}); }
+function stopMusic() { musicGood.pause(); musicBad.pause(); }
+
+// ============================== МИР: ЗДАНИЯ И ПРЕПЯТСТВИЯ ==============================
+const buildings = [
+    { x: 128, y: 224, w: 192, h: 192, wall: '#e8b07a', roof: '#c25e5e', name: 'МУР-КОФЕЙНЯ ☕', lines: ['* Закрыто! Табличка: «Ушли готовить ОЧЕНЬ большой торт. Мур!»'] },
+    { x: 448, y: 240, w: 192, h: 176, wall: '#d9c08a', roof: '#5e8f68', name: 'ЛАВКА КОТИКА 🐟', lines: ['* Слышно, как внутри кто-то бережно переставляет банки с валерьянкой.'] },
+    { x: 928, y: 240, w: 192, h: 176, wall: '#9fb6c9', roof: '#4a6b8a', name: 'РЫБНЫЙ РЫНОК 🐠', lines: ['* Закрыто! Табличка: «Вся рыба уехала на праздник!»'] },
+    { x: 1216, y: 224, w: 192, h: 192, wall: '#e8cdd9', roof: '#b8608a', name: 'ЦВЕТОЧКИ 🌸', lines: ['* Закрыто! Табличка: «Собираем 100 роз для особенного букета».'] },
+    { x: 928, y: 608, w: 160, h: 160, wall: '#e8d8c0', roof: '#d98a8a', name: 'ДОМ С СЕРДЕЧКАМИ ❤', lines: ['* Из окна пахнет пирогом и слышно хихиканье котят.'] },
+    { x: 1312, y: 704, w: 192, h: 192, wall: '#4a4470', roof: '#7a5fa8', name: 'КОТИК-МАГ ✦', mage: true },
+];
+const trees = [[96, 640], [200, 762], [96, 890], [340, 632], [438, 716], [396, 872], [560, 850], [64, 300], [1150, 580], [700, 890]];
+const bench = { x: 208, y: 676, w: 100 };
+const fountain = { x: 768, y: 700 };
+
+const solids = [];
+buildings.forEach(b => solids.push({ x: b.x, y: b.y, w: b.w, h: b.h }));
+trees.forEach(t => solids.push({ x: t[0] - 9, y: t[1] - 8, w: 18, h: 14 }));
+solids.push({ x: bench.x, y: bench.y + 6, w: bench.w, h: 16 });
+solids.push({ x: fountain.x - 58, y: fountain.y - 52, w: 116, h: 104 });
+[barista, sleeper, dancer, yarnKitten].forEach(n => solids.push({ x: n.x - 11, y: n.y - 8, w: 22, h: 12 }));
+
+function hitSolid(px, py) {
+    const l = px - 13, t = py - 10, r = px + 13, btm = py + 5;
+    for (const s of solids) {
+        if (r > s.x && l < s.x + s.w && btm > s.y && t < s.y + s.h) return true;
+    }
+    return false;
+}
+
+// ============================== ДИАЛОГИ ==============================
+const dlg = { active: false, lines: [], idx: 0, typing: false, interval: null, onDone: null };
+const dlgBox = document.getElementById('dialogueBox');
+const dlgName = document.getElementById('dlgName');
+const dlgText = document.getElementById('dlgText');
+
+function showDialogue(lines, onDone) {
+    dlg.active = true; dlg.lines = lines; dlg.idx = -1; dlg.onDone = onDone || null;
+    dlgBox.style.display = 'block';
+    nextLine();
+}
+function nextLine() {
+    dlg.idx++;
+    if (dlg.idx >= dlg.lines.length) { closeDialogue(); return; }
+    const line = dlg.lines[dlg.idx];
+    dlgName.textContent = line.n || '';
+    dlgName.style.display = line.n ? 'block' : 'none';
+    dlgText.textContent = '';
+    dlg.typing = true;
+    let i = 0;
+    dlg.interval = setInterval(() => {
+        if (i < line.t.length) { dlgText.textContent += line.t[i]; i++; }
+        else { clearInterval(dlg.interval); dlg.interval = null; dlg.typing = false; }
+    }, 26);
+}
+function advanceDialogue() {
+    if (!dlg.active) return;
+    if (dlg.typing) {
+        clearInterval(dlg.interval); dlg.interval = null; dlg.typing = false;
+        dlgText.textContent = dlg.lines[dlg.idx].t;
+        return;
+    }
+    nextLine();
+}
+function closeDialogue() {
+    dlg.active = false;
+    dlgBox.style.display = 'none';
+    if (dlg.interval) { clearInterval(dlg.interval); dlg.interval = null; }
+    const cb = dlg.onDone; dlg.onDone = null;
+    if (cb) cb();
+}
+dlgBox.addEventListener('click', advanceDialogue);
+
+// ============================== КАТ-СЦЕНЫ ==============================
+let cs = null;
+function startCutscene(steps) { cs = { steps, i: -1, waitUntil: 0, moving: null }; nextStep(); }
+function nextStep() {
+    if (!cs) return;
+    cs.i++;
+    if (cs.i >= cs.steps.length) { cs = null; return; }
+    const s = cs.steps[cs.i];
+    if (s.do) { s.do(); nextStep(); return; }
+    if (s.say) { showDialogue(s.say, nextStep); return; }
+    if (s.wait) { cs.waitUntil = now + s.wait; return; }
+    if (s.move) { cs.moving = s; s.move.moving = true; return; }
+}
+function updateCutscene() {
+    if (!cs) return;
+    if (cs.moving) {
+        const s = cs.moving, a = s.move;
+        const dx = s.x - a.x, dy = s.y - a.y, d = Math.hypot(dx, dy);
+        if (d <= s.speed) {
+            a.x = s.x; a.y = s.y; a.moving = false;
+            cs.moving = null; nextStep();
+        } else {
+            a.x += dx / d * s.speed;
+            a.y += dy / d * s.speed;
+            if (Math.abs(dx) > 1) a.flip = dx < 0;
+        }
+    } else if (cs.waitUntil) {
+        if (now >= cs.waitUntil) { cs.waitUntil = 0; nextStep(); }
+    }
+}
+
+// ---- Главная кат-сцена: похищение Мекаса ----
+function beginKidnapScene() {
+    game.mode = 'cutscene';
+    const ry = clamp(player.y, 456, 514);
+    player.flip = true;
+    mekas.x = cam.x - 60; mekas.y = ry; mekas.visible = true;
+    startCutscene([
+        { do: () => { game.focus = mekas; } },
+        { move: mekas, x: player.x - 88, y: ry, speed: 4.6 },
+        { do: () => { mekas.flip = false; game.focus = player; } },
+        { say: [
+            { n: 'Буба Мекас', t: 'БУБА!!! С ДНЁМ РОЖДЕНИЯ!!!' },
+            { n: 'Буба Мекас', t: 'Я ПРИГОТОВИЛ ДЛЯ ТЕБЯ ПОДАРОК..' },
+        ] },
+        { do: () => { playBad(); biker.x = cam.x + VIEW_W + 90; biker.y = ry - 2; biker.visible = true; game.focus = biker; } },
+        { move: biker, x: player.x - 88 + 80, y: ry - 2, speed: 11 },
+        { say: [{ n: '???', t: '*ВЖЖЖУХ!!! ...визг тормозов...*' }] },
+        { do: () => { mekas.visible = false; bag.visible = true; bag.x = mekas.x; bag.y = mekas.y + 2; bag.shakeUntil = now + 900; game.focus = player; } },
+        { wait: 600 },
+        { say: [
+            { n: 'Котик-байкер', t: 'ВОТ И ВЩЬО, БУБА ЩОНЯ!' },
+            { n: 'Котик-байкер', t: 'Я ЗНАЛ, ЧТО У ТЕБЯ СЕГОДНЯ ДЕНЬ РОЖДЕНИЯ. Я ГОТОВИЛСЯ К ЭТОМУ МОМЕНТУ ПОЛ ГОДА!' },
+            { n: 'Котик-байкер', t: 'Я ВСЁ ПРОСЧИТАЛ, ЧТОБЫ ЗАБРАТЬ У ТЕБЯ БУБУ МЕКАСА И ЕГО ПОДАРОК!' },
+            { n: 'Котик-байкер', t: 'И БОЛЬШЕ ТЫ НИКОГДА МЕНЯ И ИХ НЕ НАЙДЕШЬ!!!' },
+            { n: 'Котик-байкер', t: 'ЭТО МОЯ МЕСТЬ!!! МУХАХАХА-МЯУ!' },
+        ] },
+        { do: () => { bag.attached = true; game.focus = biker; } },
+        { wait: 300 },
+        { move: biker, x: player.x + 200, y: ry - 2, speed: 9 },
+        { do: () => { card.visible = true; card.x = biker.x - 30; card.y = ry + 12; } },
+        { move: biker, x: WORLD_W + 160, y: ry - 2, speed: 13 },
+        { do: () => { biker.visible = false; bag.visible = false; stopMusic(); game.focus = player; } },
+        { wait: 500 },
+        { say: [
+            { n: 'Буба Щоня', t: 'МЕКАС!!! НЕТ!!!' },
+            { n: 'Буба Щоня', t: 'Он украл Мекаса... и мой подарок...' },
+            { n: 'Буба Щоня', t: '...Стоп! У байкера что-то выпало из кармана!' },
+        ] },
+        { do: () => { playGood(); setQuest('card'); game.mode = 'explore'; } },
+    ]);
+}
+
+// ---- Лавочник выходит из магазина ----
+function shopkeeperEnter() {
+    game.mode = 'cutscene';
+    shopkeeper.visible = true; shopkeeper.x = 544; shopkeeper.y = 404;
+    startCutscene([
+        { do: () => { game.focus = shopkeeper; } },
+        { wait: 350 },
+        { move: shopkeeper, x: 554, y: 448, speed: 2.4 },
+        { do: () => { shopkeeper.flip = false; shopkeeper.mark = true; game.focus = player; game.mode = 'explore'; } },
+        { say: [{ n: 'Котик-лавочник', t: 'МЯУ! Буба! Буба Щоня! Подойди скорее, мне нужно тебе кое-что рассказать!' }] },
+    ]);
+}
+
+// ============================== ВЗАИМОДЕЙСТВИЯ ==============================
+const npcs = [
+    { a: barista, name: 'Кися-бариста', lines: [
+        '* Мур! Сама Буба Щоня зашла в наш район!',
+        '* Заходи на чашечку мур-чино! Сегодня для тебя — бесплатно.',
+        '* Почему бесплатно? Хи-хи... Скоро узнаешь!',
+    ] },
+    { a: sleeper, name: 'Сонный котик', lines: [
+        '* Хррр... мяу... ещё пять минуточек...',
+        '* ...я всю ночь надувал шарики... хррр... для кого?.. секрет...',
+    ] },
+    { a: dancer, name: 'Котик-танцор', lines: [
+        '* Раз-два-мяу! Раз-два-мяу!',
+        '* Я репетирую танец для одного ОЧЕНЬ важного праздника!',
+        '* Какого? Не скажу! Это сюрприз. Мяу!',
+    ] },
+    { a: yarnKitten, name: 'Котёнок с клубком', lines: [
+        '* Смотри, какой у меня клубок! Самый круглый в городе!',
+        '* Мама сказала, сегодня в городе большой праздник. Интересно, чей?',
+    ] },
+    { a: shopkeeper, name: 'Котик-лавочник', lines: [
+        '* МЯУ-МЯУ-МЯУ!!! Я ВСЁ ВИДЕЛ!!!',
+        '* Я как раз протирал банки с валерьянкой, и тут — ВЖУХ! Байкер! Пакет! Похищение!',
+        '* У меня от страха хвост распушился, как ёлка! ...Ну ладно, уже опушился обратно.',
+        '* Это же тот самый Котик-байкер. Говорят, он однажды украл целый грузовик сметаны!',
+        '* Потайной лес, говоришь? Просто так туда не попасть — вход спрятан магией.',
+        '* Но не переживай! Наш Котик-маг знает дорогу — он в том лесу грибы собирает.',
+        '* Его дом ниже по улице: фиолетовая крыша со звёздами. Не перепутаешь!',
+        '* Удачи, Буба! Весь город в тебя верит. Ты же величайшая киса!',
+    ], onDone: () => { if (game.quest === 'shopkeeper') { setQuest('mage'); shopkeeper.mark = false; } } },
+];
+
+function interactables() {
+    const list = [];
+    for (const n of npcs) {
+        if (!n.a.visible) continue;
+        list.push({ x: n.a.x, y: n.a.y, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+    }
+    for (const b of buildings) {
+        const doorX = b.mage ? b.x + 6 : b.x + b.w / 2;
+        const doorY = b.mage ? b.y + b.h - 44 : b.y + b.h + 6;
+        if (b.mage) {
+            list.push({ x: doorX, y: doorY, act: () => {
+                const lines = [
+                    { n: 'Записка на двери', t: '«Ушёл за волшебной валерьянкой. Буду поздно. НЕ СТУЧАТЬ — КОТ СПИТ!»' },
+                    { n: 'Записка на двери', t: '«...Хотя стоп, я же и есть кот, и я ушёл. В общем, скоро буду! — Котик-маг ✦»' },
+                ];
+                if (game.quest === 'mage') {
+                    lines.push({ n: 'Буба Щоня', t: 'Эх... придётся немного подождать.' });
+                    lines.push({ n: 'Буба Щоня', t: 'Держись, Мекас! Я обязательно спасу тебя и подарок!' });
+                    showDialogue(lines, () => { setQuest('done'); openTbc(); });
+                } else {
+                    showDialogue(lines);
+                }
+            } });
+        } else if (b.lines) {
+            list.push({ x: doorX, y: doorY, act: () => showDialogue(b.lines.map(t => ({ n: '', t }))) });
+        }
+    }
+    if (card.visible && !card.taken && game.quest === 'card') {
+        list.push({ x: card.x, y: card.y, act: () => {
+            card.taken = true; card.visible = false;
+            openCard();
+        } });
+    }
+    return list;
+}
+function nearestInteractable() {
+    let best = null, bd = 52;
+    for (const it of interactables()) {
+        const d = dist(player.x, player.y, it.x, it.y);
+        if (d < bd) { bd = d; best = it; }
+    }
+    return best;
+}
+
+// ============================== ОВЕРЛЕИ ==============================
+let overlayOpen = true; // титульник открыт при старте
+
+function startGame() {
+    document.getElementById('titleScreen').style.display = 'none';
+    overlayOpen = false;
+    game.mode = 'explore';
+    playGood();
+}
+function openCard() {
+    overlayOpen = true;
+    document.getElementById('cardScreen').style.display = 'flex';
+}
+function closeCard() {
+    document.getElementById('cardScreen').style.display = 'none';
+    overlayOpen = false;
+    setQuest('shopkeeper');
+    shopkeeperEnter();
+}
+function openTbc() {
+    overlayOpen = true;
+    document.getElementById('tbcScreen').style.display = 'flex';
+}
+function closeTbc() {
+    document.getElementById('tbcScreen').style.display = 'none';
+    overlayOpen = false;
+}
+
+// Фото на визитке
+(function renderCardPhoto() {
+    const pc = document.getElementById('cardPhoto').getContext('2d');
+    const spr = buildSprite(ROWS_BIKER_KIND, PAL_BIKER_KIND, 8);
+    pc.imageSmoothingEnabled = false;
+    pc.drawImage(spr, (120 - spr.width) / 2, 120 - spr.height + 8);
+})();
+
+// Сердечки на титульнике
+(function titleHearts() {
+    const t = document.getElementById('titleScreen');
+    for (let i = 0; i < 14; i++) {
+        const s = document.createElement('span');
+        s.className = 'heart-bg';
+        s.textContent = '💗';
+        s.style.left = Math.random() * 100 + '%';
+        s.style.animationDelay = Math.random() * 10 + 's';
+        s.style.fontSize = (Math.random() * 16 + 12) + 'px';
+        t.appendChild(s);
+    }
+})();
+
+// ============================== ВВОД ==============================
+const keys = {};
+addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+    keys[k] = true;
+    if (e.repeat || overlayOpen) return;
+    if (k === 'e' || k === ' ' || k === 'enter' || k === 'z') {
+        if (dlg.active) { advanceDialogue(); return; }
+        if (game.mode === 'explore') {
+            const it = nearestInteractable();
+            if (it) it.act();
+        }
+    }
+});
+addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+// ============================== ОБНОВЛЕНИЕ ==============================
+const cam = { x: 0, y: 0 };
+
+function update() {
+    updateCutscene();
+
+    // Движение игрока
+    if (game.mode === 'explore' && !dlg.active && !overlayOpen) {
+        let dx = 0, dy = 0;
+        if (keys['w'] || keys['arrowup']) dy -= 1;
+        if (keys['s'] || keys['arrowdown']) dy += 1;
+        if (keys['a'] || keys['arrowleft']) dx -= 1;
+        if (keys['d'] || keys['arrowright']) dx += 1;
+        if (dx && dy) { dx *= 0.707; dy *= 0.707; }
+        const sp = 3.4;
+        player.moving = !!(dx || dy);
+        if (dx) {
+            const nx = clamp(player.x + dx * sp, 22, WORLD_W - 22);
+            if (!hitSolid(nx, player.y)) player.x = nx;
+            player.flip = dx < 0;
+        }
+        if (dy) {
+            const ny = clamp(player.y + dy * sp, 40, WORLD_H - 8);
+            if (!hitSolid(player.x, ny)) player.y = ny;
+        }
+
+        // Триггер главной кат-сцены — городская площадь
+        if (game.quest === 'explore' && player.x > 640 && player.x < 928 && player.y > 424 && player.y < 570) {
+            beginKidnapScene();
+        }
+    } else {
+        player.moving = false;
+    }
+
+    // Пакет привязан к мотоциклу
+    if (bag.attached && biker.visible) { bag.x = biker.x - 10; bag.y = biker.y - 34; }
+
+    // Танцор пританцовывает
+    dancer.flip = Math.floor(now / 420) % 2 === 0;
+
+    // Камера
+    const f = game.focus || player;
+    const tx = clamp(f.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
+    const ty = clamp(f.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
+    cam.x += (tx - cam.x) * 0.1;
+    cam.y += (ty - cam.y) * 0.1;
+}
+
+// ============================== СТАТИЧНЫЙ СЛОЙ МИРА ==============================
+const staticLayer = document.createElement('canvas');
+staticLayer.width = WORLD_W; staticLayer.height = WORLD_H;
+
+function buildStaticLayer() {
+    const s = staticLayer.getContext('2d');
+    // Трава
+    s.fillStyle = '#79c06e'; s.fillRect(0, 0, WORLD_W, WORLD_H);
+    for (let i = 0; i < 420; i++) {
+        s.fillStyle = Math.random() < 0.5 ? '#6fb565' : '#83c977';
+        s.fillRect(Math.floor(Math.random() * WORLD_W / 8) * 8, Math.floor(Math.random() * WORLD_H / 8) * 8, 8, 8);
+    }
+    // Тротуары
+    s.fillStyle = '#c9c9cf';
+    s.fillRect(0, 416, WORLD_W, 32); s.fillRect(0, 512, WORLD_W, 32);
+    s.fillRect(1184, 544, 32, 416); s.fillRect(1280, 544, 32, 416);
+    // Дороги
+    s.fillStyle = '#8d8d99';
+    s.fillRect(0, 448, WORLD_W, 64);
+    s.fillRect(1216, 512, 64, 448);
+    s.fillStyle = '#e8e8ee';
+    for (let x = 8; x < WORLD_W; x += 52) s.fillRect(x, 477, 24, 5);
+    for (let y = 530; y < WORLD_H; y += 52) s.fillRect(1245, y, 5, 24);
+    // Площадь
+    s.fillStyle = '#e3cfa8'; s.fillRect(608, 544, 320, 224);
+    s.strokeStyle = '#d4bd92'; s.lineWidth = 2;
+    for (let x = 608; x <= 928; x += 32) { s.beginPath(); s.moveTo(x, 544); s.lineTo(x, 768); s.stroke(); }
+    for (let y = 544; y <= 768; y += 32) { s.beginPath(); s.moveTo(608, y); s.lineTo(928, y); s.stroke(); }
+    // Цветочки на траве
+    const flowerCols = ['#ff8fb3', '#ffd166', '#ffffff', '#c77dff'];
+    for (let i = 0; i < 90; i++) {
+        const fx = Math.random() * WORLD_W, fy = Math.random() * WORLD_H;
+        if (fy > 400 && fy < 560) continue;
+        if (fx > 590 && fx < 940 && fy > 530 && fy < 780) continue;
+        s.fillStyle = flowerCols[Math.floor(Math.random() * flowerCols.length)];
+        s.fillRect(fx, fy, 4, 4);
+        s.fillStyle = '#4e9e4e'; s.fillRect(fx + 1, fy + 4, 2, 3);
+    }
+    // Здания
+    buildings.forEach(b => drawBuilding(s, b));
+    // Деревья
+    trees.forEach(t => drawTree(s, t[0], t[1]));
+    // Лавочка
+    s.fillStyle = '#8a5a3a'; s.fillRect(bench.x, bench.y - 8, bench.w, 8);
+    s.fillStyle = '#a9743f'; s.fillRect(bench.x, bench.y + 4, bench.w, 10);
+    s.fillStyle = '#6e4429';
+    s.fillRect(bench.x + 6, bench.y + 14, 8, 12); s.fillRect(bench.x + bench.w - 14, bench.y + 14, 8, 12);
+    // Фонтан (основа)
+    s.fillStyle = '#cfd6dd'; s.beginPath(); s.arc(fountain.x, fountain.y, 60, 0, 7); s.fill();
+    s.strokeStyle = '#9aa4ae'; s.lineWidth = 4; s.stroke();
+    s.fillStyle = '#7fb8e8'; s.beginPath(); s.arc(fountain.x, fountain.y, 46, 0, 7); s.fill();
+    s.fillStyle = '#cfd6dd'; s.beginPath(); s.arc(fountain.x, fountain.y, 12, 0, 7); s.fill();
+    // Праздничные флажки над площадью
+    drawFlags(s);
+    // Звёзды у дома мага
+    s.fillStyle = '#ffe9a8'; s.font = '18px Courier New';
+    s.fillText('✦', 1290, 700); s.fillText('✦', 1520, 740); s.fillText('✦', 1330, 680); s.fillText('✧', 1500, 690);
+}
+
+function drawBuilding(s, b) {
+    // Стены
+    s.fillStyle = b.wall; s.fillRect(b.x, b.y + 40, b.w, b.h - 40);
+    s.strokeStyle = '#3f3345'; s.lineWidth = 3; s.strokeRect(b.x, b.y + 40, b.w, b.h - 40);
+    // Крыша
+    s.fillStyle = b.roof; s.fillRect(b.x - 10, b.y, b.w + 20, 52);
+    s.strokeRect(b.x - 10, b.y, b.w + 20, 52);
+    s.fillStyle = 'rgba(255,255,255,0.18)'; s.fillRect(b.x - 10, b.y, b.w + 20, 10);
+    // Окна
+    const winY = b.y + 74;
+    [b.x + 26, b.x + b.w - 62].forEach(wx => {
+        s.fillStyle = '#4a3b45'; s.fillRect(wx - 3, winY - 3, 42, 42);
+        s.fillStyle = '#fff3b8'; s.fillRect(wx, winY, 36, 36);
+        s.strokeStyle = '#4a3b45'; s.lineWidth = 2;
+        s.beginPath(); s.moveTo(wx + 18, winY); s.lineTo(wx + 18, winY + 36); s.moveTo(wx, winY + 18); s.lineTo(wx + 36, winY + 18); s.stroke();
+    });
+    // Дверь
+    if (b.mage) {
+        s.fillStyle = '#2e2440'; s.fillRect(b.x + 2, b.y + b.h - 74, 34, 60);
+        s.strokeStyle = '#3f3345'; s.lineWidth = 3; s.strokeRect(b.x + 2, b.y + b.h - 74, 34, 60);
+        s.fillStyle = '#ffd166'; s.beginPath(); s.arc(b.x + 30, b.y + b.h - 44, 3, 0, 7); s.fill();
+        s.fillStyle = '#ffe9a8'; s.font = 'bold 16px Courier New'; s.fillText('☾', b.x + 12, b.y + b.h - 84);
+        // Записка на двери
+        s.fillStyle = '#fdf6e0'; s.fillRect(b.x + 8, b.y + b.h - 66, 22, 16);
+    } else {
+        const dx = b.x + b.w / 2 - 20, dy2 = b.y + b.h - 52;
+        s.fillStyle = '#5a4632'; s.fillRect(dx, dy2, 40, 52);
+        s.strokeStyle = '#3f3345'; s.lineWidth = 3; s.strokeRect(dx, dy2, 40, 52);
+        s.fillStyle = '#ffd166'; s.beginPath(); s.arc(dx + 32, dy2 + 28, 3, 0, 7); s.fill();
+    }
+    // Вывеска
+    const label = b.name;
+    s.font = 'bold 13px Courier New';
+    const tw = s.measureText(label).width + 18;
+    const sx2 = b.x + b.w / 2 - tw / 2, sy2 = b.y + 44;
+    s.fillStyle = '#fdf6e8'; rr(s, sx2, sy2, tw, 24, 6); s.fill();
+    s.strokeStyle = '#3f3345'; s.lineWidth = 2; s.stroke();
+    s.fillStyle = '#33262e'; s.textAlign = 'left';
+    s.fillText(label, sx2 + 9, sy2 + 16);
+}
+
+function drawTree(s, x, y) {
+    s.fillStyle = '#8a5a3a'; s.fillRect(x - 7, y - 20, 14, 26);
+    s.fillStyle = '#4e9e4e';
+    s.beginPath(); s.arc(x - 18, y - 30, 20, 0, 7); s.fill();
+    s.beginPath(); s.arc(x + 18, y - 30, 20, 0, 7); s.fill();
+    s.fillStyle = '#59aa59';
+    s.beginPath(); s.arc(x, y - 46, 26, 0, 7); s.fill();
+    s.fillStyle = '#6fc06f';
+    s.beginPath(); s.arc(x - 8, y - 52, 8, 0, 7); s.fill();
+}
+
+function drawFlags(s) {
+    const x1 = 616, x2 = 920, y0 = 560, poleH = 74;
+    // Столбики
+    s.fillStyle = '#8a5a3a'; s.fillRect(x1 - 4, y0 - poleH, 8, poleH); s.fillRect(x2 - 4, y0 - poleH, 8, poleH);
+    // Верёвка
+    s.strokeStyle = '#f5f0e0'; s.lineWidth = 2;
+    s.beginPath(); s.moveTo(x1, y0 - poleH + 6);
+    s.quadraticCurveTo((x1 + x2) / 2, y0 - poleH + 30, x2, y0 - poleH + 6); s.stroke();
+    // Флажки
+    const cols = ['#ff6f91', '#ffd166', '#6fc3ff', '#9bde7e'];
+    for (let i = 0; i < 12; i++) {
+        const t = (i + 0.5) / 12;
+        const fx = x1 + (x2 - x1) * t;
+        const fy = y0 - poleH + 6 + Math.sin(Math.PI * t) * 24;
+        s.fillStyle = cols[i % cols.length];
+        s.beginPath(); s.moveTo(fx - 8, fy); s.lineTo(fx + 8, fy); s.lineTo(fx, fy + 14); s.closePath(); s.fill();
+    }
+    // Шарики на столбиках
+    [[x1 - 12, y0 - poleH - 6, '#ff6f91'], [x1 + 10, y0 - poleH - 14, '#ffd166'], [x2 + 12, y0 - poleH - 6, '#6fc3ff'], [x2 - 10, y0 - poleH - 14, '#9bde7e']].forEach(bl => {
+        s.strokeStyle = '#f5f0e0'; s.lineWidth = 1;
+        s.beginPath(); s.moveTo(bl[0], bl[1]); s.lineTo(bl[0], bl[1] + 18); s.stroke();
+        s.fillStyle = bl[2]; s.beginPath(); s.arc(bl[0], bl[1] - 8, 9, 0, 7); s.fill();
+    });
+    // Праздничная лента
+    const banner = '✿ С ДНЁМ РОЖДЕНИЯ, БУБА! ✿';
+    s.font = 'bold 14px Courier New';
+    const bw = s.measureText(banner).width + 22;
+    s.fillStyle = '#fff0f6'; rr(s, 768 - bw / 2, 588, bw, 26, 8); s.fill();
+    s.strokeStyle = '#e0709a'; s.lineWidth = 2; s.stroke();
+    s.fillStyle = '#c2456f'; s.fillText(banner, 768 - bw / 2 + 11, 606);
+}
+
+// ============================== РЕНДЕР ==============================
+const sx = x => Math.round(x - cam.x);
+const sy = y => Math.round(y - cam.y);
+
+function drawActor(a) {
+    if (!a.visible) return;
+    const spr = a.flip ? a.sprF : a.spr;
+    const bobY = a.moving ? Math.abs(Math.sin(now * 0.02 + a.bob)) * 3 : Math.sin(now * 0.004 + a.bob) * 1.2;
+    g.drawImage(spr, sx(a.x) - Math.round(spr.width / 2), sy(a.y) - spr.height + 6 - Math.round(bobY));
+}
+
+function drawGift(x, y) {
+    const X = sx(x), Y = sy(y);
+    g.fillStyle = '#e14b5a'; g.fillRect(X - 11, Y - 9, 22, 18);
+    g.strokeStyle = '#8a2f3a'; g.lineWidth = 2; g.strokeRect(X - 11, Y - 9, 22, 18);
+    g.fillStyle = '#ffd166';
+    g.fillRect(X - 2, Y - 9, 4, 18); g.fillRect(X - 11, Y - 2, 22, 4);
+    g.beginPath(); g.arc(X - 4, Y - 12, 4, 0, 7); g.arc(X + 4, Y - 12, 4, 0, 7); g.fill();
+}
+
+function drawBikerBike() {
+    if (!biker.visible) return;
+    const X = sx(biker.x), Y = sy(biker.y);
+    g.save();
+    g.translate(X, Y);
+    if (biker.flip) g.scale(-1, 1);
+    // Дым из трубы при движении
+    if (biker.moving) {
+        g.fillStyle = 'rgba(230,230,230,0.5)';
+        for (let i = 0; i < 3; i++) {
+            g.beginPath(); g.arc(-52 - i * 14, -20 - Math.sin(now * 0.02 + i) * 4, 5 + i * 2, 0, 7); g.fill();
+        }
+    }
+    // Колёса
+    [-26, 26].forEach(cx => {
+        g.fillStyle = '#20202a'; g.beginPath(); g.arc(cx, -14, 13, 0, 7); g.fill();
+        g.fillStyle = '#9aa2ab'; g.beginPath(); g.arc(cx, -14, 5, 0, 7); g.fill();
+    });
+    // Рама
+    g.fillStyle = '#c2453f'; rr(g, -34, -40, 64, 18, 7); g.fill();
+    g.strokeStyle = '#3f3345'; g.lineWidth = 2; g.stroke();
+    // Выхлопная труба
+    g.fillStyle = '#8d949c'; g.fillRect(-46, -26, 14, 7);
+    // Руль
+    g.strokeStyle = '#3f3345'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(28, -38); g.lineTo(38, -58); g.stroke();
+    g.fillStyle = '#2c2c35'; g.fillRect(34, -62, 10, 6);
+    // Фара
+    g.fillStyle = '#ffd166'; g.beginPath(); g.arc(38, -34, 4, 0, 7); g.fill();
+    // Сиденье
+    g.fillStyle = '#222229'; rr(g, -26, -46, 26, 8, 3); g.fill();
+    // Котик-байкер
+    g.drawImage(bikerCatSpr, -32, -80);
+    g.restore();
+}
+
+function drawBag() {
+    if (!bag.visible) return;
+    const shake = now < bag.shakeUntil ? Math.sin(now * 0.06) * 3 : 0;
+    const X = sx(bag.x) + shake, Y = sy(bag.y);
+    g.fillStyle = '#8a6a44';
+    rr(g, X - 26, Y - 52, 52, 52, 12); g.fill();
+    g.strokeStyle = '#5c4426'; g.lineWidth = 3; g.stroke();
+    g.fillStyle = '#6e5233'; g.fillRect(X - 9, Y - 60, 18, 10);
+    g.strokeStyle = '#5c4426'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(X - 12, Y - 55); g.lineTo(X + 12, Y - 55); g.stroke();
+    if (now < bag.shakeUntil + 1400) {
+        g.fillStyle = '#fff';
+        g.font = 'bold 18px Courier New';
+        g.fillText('!!', X + 20, Y - 58);
+    }
+}
+
+function drawCard() {
+    if (!card.visible) return;
+    const X = sx(card.x), Y = sy(card.y);
+    g.save();
+    g.translate(X, Y); g.rotate(-0.14);
+    g.fillStyle = '#fdf8ee'; g.fillRect(-14, -9, 28, 18);
+    g.strokeStyle = '#b8a888'; g.lineWidth = 2; g.strokeRect(-14, -9, 28, 18);
+    g.strokeStyle = '#8a7a68'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(-9, -3); g.lineTo(9, -3); g.moveTo(-9, 2); g.lineTo(5, 2); g.stroke();
+    g.restore();
+    // Блеск
+    g.fillStyle = 'rgba(255,240,160,' + (0.5 + Math.sin(now * 0.008) * 0.5) + ')';
+    g.font = '16px Courier New';
+    g.fillText('✦', X + 12, Y - 16);
+}
+
+function drawFountainWater() {
+    const X = sx(fountain.x), Y = sy(fountain.y);
+    g.fillStyle = '#dff0ff';
+    for (let i = 0; i < 8; i++) {
+        const a = now * 0.0016 + i * Math.PI / 4;
+        g.beginPath(); g.arc(X + Math.cos(a) * 28, Y + Math.sin(a) * 26, 3, 0, 7); g.fill();
+    }
+    g.fillStyle = 'rgba(230,245,255,' + (0.5 + Math.sin(now * 0.006) * 0.3) + ')';
+    g.beginPath(); g.ellipse(X, Y - 16, 6, 12 + Math.sin(now * 0.006) * 3, 0, 0, 7); g.fill();
+}
+
+function drawMarkerAndHint() {
+    // «!» над лавочником
+    if (shopkeeper.visible && shopkeeper.mark) {
+        const X = sx(shopkeeper.x), Y = sy(shopkeeper.y) - 56 - Math.abs(Math.sin(now * 0.006)) * 7;
+        g.font = 'bold 28px Courier New';
+        g.lineWidth = 4; g.strokeStyle = '#4a3b45'; g.strokeText('!', X - 5, Y);
+        g.fillStyle = '#ffd21f'; g.fillText('!', X - 5, Y);
+    }
+    // Подсказка «E»
+    if (game.mode === 'explore' && !dlg.active && !overlayOpen) {
+        const it = nearestInteractable();
+        if (it) {
+            const X = sx(it.x), Y = sy(it.y) - 62;
+            g.fillStyle = 'rgba(255,255,255,0.92)';
+            rr(g, X - 11, Y - 11, 22, 22, 5); g.fill();
+            g.strokeStyle = '#4a3b45'; g.lineWidth = 2; g.stroke();
+            g.fillStyle = '#4a3b45'; g.font = 'bold 15px Courier New';
+            g.fillText('E', X - 5, Y + 5);
+        }
+    }
+}
+
+function render() {
+    g.clearRect(0, 0, VIEW_W, VIEW_H);
+    g.drawImage(staticLayer, -Math.round(cam.x), -Math.round(cam.y));
+    drawFountainWater();
+    drawCard();
+
+    // Сущности с сортировкой по глубине
+    const ents = [];
+    ents.push({ y: player.y, d: () => drawActor(player) });
+    for (const n of [barista, sleeper, dancer, yarnKitten, shopkeeper]) {
+        if (n.visible) ents.push({ y: n.y, d: () => drawActor(n) });
+    }
+    if (mekas.visible) ents.push({ y: mekas.y, d: () => { drawActor(mekas); drawGift(mekas.x + 2, mekas.y - 52); } });
+    if (bag.visible && !bag.attached) ents.push({ y: bag.y, d: drawBag });
+    if (biker.visible) ents.push({ y: biker.y + 12, d: () => { drawBikerBike(); if (bag.attached) drawBag(); } });
+    ents.sort((a, b) => a.y - b.y);
+    ents.forEach(e => e.d());
+
+    // Декор поверх: сонный котик — «Z-z-z», бариста — кофе, клубок котёнка
+    g.font = '14px Courier New';
+    g.fillStyle = 'rgba(255,255,255,' + (0.5 + Math.sin(now * 0.004) * 0.4) + ')';
+    g.fillText('z-Z', sx(sleeper.x) + 16, sy(sleeper.y) - 46 - Math.sin(now * 0.003) * 4);
+    g.font = '15px Courier New';
+    g.fillText('☕', sx(barista.x) + 18, sy(barista.y) - 12);
+    // Клубок
+    const yb = { x: yarnKitten.x + 24, y: yarnKitten.y - 2 };
+    g.fillStyle = '#e0576f'; g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 8, 0, 7); g.fill();
+    g.strokeStyle = '#b83a52'; g.lineWidth = 1.5;
+    g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 5, 0.5, 2.6); g.stroke();
+    g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 5, 3.6, 5.6); g.stroke();
+
+    drawMarkerAndHint();
+}
+
+// ============================== ЦИКЛ ==============================
+buildStaticLayer();
+setQuest('explore');
+cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
+cam.y = clamp(player.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
+
+function loop(ts) {
+    now = ts;
+    update();
+    render();
+    requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// Быстрый старт для отладки: #test — сразу в город, #scene — сразу кат-сцена похищения,
+// #auto — кат-сцена с автопрокруткой диалогов, #mage — у дома мага
+if (['#test', '#scene', '#auto', '#mage'].includes(location.hash)) {
+    startGame();
+    if (location.hash === '#scene' || location.hash === '#auto') { player.x = 700; player.y = 480; }
+    if (location.hash === '#auto') setInterval(() => { if (dlg.active) advanceDialogue(); }, 700);
+    if (location.hash === '#mage') { setQuest('mage'); player.x = 1296; player.y = 852; }
+}
+</script>
+</body>
+</html>
