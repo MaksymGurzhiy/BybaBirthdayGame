@@ -228,12 +228,11 @@
 <!-- Титульный экран -->
 <div id="titleScreen" class="overlay">
     <h1>БУБА 2</h1>
-    <h2>🎂 Похищение на Дне Рождения 🏍️</h2>
     <p>Продолжение приключений великой кисы Бубы Щони.<br>
        Котик-байкер обещал вернуться... и он вернулся.<br><br>
        Управление: WASD / стрелки. Говорить — E или Пробел.</p>
     <div id="titleChar">
-        <canvas id="titleCat" width="120" height="100"></canvas>
+        <canvas id="titleCat" width="140" height="126"></canvas>
         <div id="titleName">Буба Щоня</div>
     </div>
     <button class="btn" onclick="startGame()">Играть 🐾</button>
@@ -313,81 +312,102 @@ function flipSprite(spr) {
     return c;
 }
 
-// Базовая киса — сидящая, в стиле референса (18 пикселей шириной):
-// o контур, f шерсть, i ушко, c щёчки, e глаза, m носик-ротик, T кончик хвоста
+// Базовая киса — 1 в 1 по референсу (22 пикселя шириной, 20 рядов):
+// большие треугольные ушки с розовым, широко посаженные глаза-чёрточки, щёчки,
+// круглая голова шире тела, грушевидное тело, хвост спереди с поднятым кончиком.
+// o контур, f шерсть, i ушко, c щёчки, e глаза, m носик, T хвост
 const CAT = [
-    '..oo........oo....',
-    '.ooioo....ooioo...',
-    '.offfoooooofffo...',
-    '.offffffffffffo...',
-    '.offeffffffeffo...',
-    '.ocffffmmffffco...',
-    '.offffffffffffo...',
-    '..oooffffffooo....',
-    '..offffffffffo....',
-    '.offffffffffffo...',
-    '.offffffffffffo...',
-    '.offffffffffffo...',
-    '..offffffffffo....',
-    '..offoffffoffo....',
-    '...oofffffffToo...',
+    '...oo.........oo......',
+    '..oiio.......oiio.....',
+    '..oiiio.....oiiio.....',
+    '.ooiiioooooooiiiioo...',
+    '.offffffffffffffffo...',
+    '.offffffffffffffffo...',
+    'offffffffffffffffffo..',
+    'offeeffffffffffeeffo..',
+    'occffffffmmffffffcco..',
+    '.offffffffmffffffffo..',
+    '.offffffffffffffffo...',
+    '..offffffffffffffo....',
+    '...offffffffffffo.....',
+    '...offffffffffffo.TTo.',
+    '..offffffffffffffoTTo.',
+    '..offffffffffffffoTTo.',
+    '.offffffffffffffffoTo.',
+    '.oooooooooooooooooTo..',
+    '..oTTTTTTTTTTTTTTTTo..',
+    '...oooooooooooooooo...',
 ];
 function catRows(mod) { // mod: {row: 'строка'} — замены строк базовой кисы
     const rows = CAT.slice();
     if (mod) for (const k in mod) rows[+k] = mod[k];
     return rows;
 }
-const STRIPES = '.ofvffvffvffvfo...'; // полосатая строка для табби
+const STRIPE_HEAD = '.ofvffvfffvvfffvffo...'; // полоски на голове для табби
+const STRIPE_BODY = '..ofvffvffvvffvffoTTo.'; // полоски на теле
 
 // Буба Щоня — чёрная кошечка с розовым бантиком и цветочком на голове
-const ROWS_SHONYA = catRows({ 0: '..pyp......bbbb...', 1: '.ooioo....obbbbo..' });
-const PAL_SHONYA = { o: '#17151c', f: '#2a2a31', i: '#8a5560', c: '#ff8fa8', e: '#f2a24a', m: '#0d0c10', T: '#4a4a55', b: '#ff70a6', p: '#ff9eb5', y: '#ffd166' };
+const ROWS_SHONYA = catRows({
+    0: '...oo........bbbb.....',
+    1: '..oiio..pyp.bbbbbbb...',
+    2: '..oiiio.....bbbbb.....',
+    3: '.ooiiiooooooobbboo....',
+});
+const PAL_SHONYA = { o: '#17151c', f: '#2a2a31', i: '#f2a5b8', c: '#ff8fa8', e: '#f2a24a', m: '#0d0c10', T: '#3d3d46', b: '#ff70a6', p: '#ff9eb5', y: '#ffd166' };
 
 // Буба Мекас — коричневый полосатый котик
-const ROWS_MEKAS = catRows({ 3: STRIPES, 9: STRIPES, 11: STRIPES });
-const PAL_MEKAS = { o: '#3a2417', f: '#8a5c34', v: '#6d4526', i: '#e8a58a', c: '#ff9eb5', e: '#2c1c10', m: '#2c1c10', T: '#6d4526' };
+const ROWS_MEKAS = catRows({ 4: STRIPE_HEAD, 15: STRIPE_BODY });
+const PAL_MEKAS = { o: '#3a2417', f: '#8a5c34', v: '#6d4526', i: '#e8a58a', c: '#ff9eb5', e: '#f5f0e6', m: '#2c1c10', T: '#6d4526' };
 
 // Котик-байкер — серый полосатый, чёрная куртка, тёмные очки
 const ROWS_BIKER = catRows({
-    3: STRIPES,
-    4: '.okkkffffkkkffo...',
-    8: '..ojjffffffjjo....',
-    9: '.ojjjjjjjjjjjjo...',
-    10: '.ojjjjjzjjjjjjo...',
-    11: '.ojjjjjjjjjjjjo...',
-    12: '..ojjjjjjjjjjo....',
+    4: STRIPE_HEAD,
+    7: 'offkkkffffffffkkkffo..',
+    12: '...ojjjjjjjjjjjjo.....',
+    13: '...ojjjjjjjjjjjjo.TTo.',
+    14: '..ojjjjjjjjjjjjjjoTTo.',
+    15: '..ojjjjjjjjjjjjjjoTTo.',
+    16: '.ojjjjjjjjzjjjjjjjoTo.',
 });
 const PAL_BIKER = { o: '#2e2733', f: '#9aa2ab', v: '#79828c', i: '#77808a', c: '#8f7a84', e: '#15151c', m: '#15151c', T: '#79828c', k: '#15151c', j: '#2c2c35', z: '#c6ccd4' };
 
 // «Доброе» фото байкера для визитки — без очков, с цветочком
-const ROWS_BIKER_KIND = catRows({ 0: '..pyp.......oo....', 3: STRIPES });
+const ROWS_BIKER_KIND = catRows({ 1: '..oiio..pyp..oiio.....', 4: STRIPE_HEAD });
 const PAL_BIKER_KIND = { o: '#2e2733', f: '#9aa2ab', v: '#79828c', i: '#f2a5b8', c: '#ff9eb5', e: '#3b2d42', m: '#2e2733', T: '#79828c', p: '#ff8fb3', y: '#ffd166' };
 
 // Котик-лавочник — рыжий полосатый в зелёном фартуке
 const ROWS_SHOPKEEPER = catRows({
-    3: STRIPES,
-    8: '..oaffffffffao....',
-    9: '.offaaaaaaaaffo...',
-    10: '.offaaaaaaaaffo...',
-    11: '.offaaaaaaaaffo...',
-    12: '..ofaaaaaaaafo....',
+    4: STRIPE_HEAD,
+    12: '...oaffffffffffao.....',
+    13: '...offaaaaaaaaffo.TTo.',
+    14: '..offaaaaaaaaaaffoTTo.',
+    15: '..offaaaaaaaaaaffoTTo.',
 });
 const PAL_SHOPKEEPER = { o: '#5a3510', f: '#e8963e', v: '#c9752a', i: '#f5c9a8', c: '#ff9eb5', e: '#3a2410', m: '#3a2410', T: '#c9752a', a: '#5e935e' };
 
 // Горожане
-const PAL_BARISTA = { o: '#4a3b2a', f: '#f1e0bf', i: '#e8b88a', c: '#ff9eb5', e: '#3b2d42', m: '#3b2d42', T: '#e0c8a0' };
-const ROWS_SLEEPER = catRows({ 4: '.off-ffffff-ffo...' });
+const PAL_BARISTA = { o: '#4a3b2a', f: '#f1e0bf', i: '#e8b88a', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#e0c8a0' };
+const ROWS_SLEEPER = catRows({ 7: 'off--ffffffffff--ffo..' });
 const PAL_SLEEPER = { o: '#3a3f46', f: '#707880', '-': '#3a3f46', i: '#5c646c', c: '#c98a98', e: '#3a3f46', m: '#3a3f46', T: '#5c646c' };
-const PAL_DANCER = { o: '#4a4448', f: '#f6f4ee', i: '#e8d8d8', c: '#ff9eb5', e: '#3b2d42', m: '#3b2d42', T: '#e0dcd4' };
-const ROWS_TUXEDO = catRows({ 5: '.ocffwwmmwwffco...', 8: '..offwwwwwwffo....', 9: '.offfwwwwwwfffo...' });
+const PAL_DANCER = { o: '#4a4448', f: '#f6f4ee', i: '#f2a5b8', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#e0dcd4' };
+const ROWS_TUXEDO = catRows({
+    8: 'occffwwwwmmwwwwffcco..',
+    9: '.offfwwwwwmwwwwwfffo..',
+    12: '...owwwwwwwwwwwwo.....',
+    13: '...owwwwwwwwwwwwo.TTo.',
+});
 const PAL_TUXEDO = { o: '#17151c', f: '#26262c', w: '#f5f2ec', i: '#8a5560', c: '#ff8fa8', e: '#f2c94a', m: '#111118', T: '#3a3a42' };
 
 // Котики в домах
 const PAL_FISHMONGER = { o: '#2f333a', f: '#5b6069', i: '#4a4e56', c: '#c98a98', e: '#5aa8d8', m: '#22252b', T: '#4a4e56' };
-const PAL_GOURMAND = { o: '#17151c', f: '#2a2a31', i: '#8a5560', c: '#ff8fa8', e: '#f2a24a', m: '#0d0c10', T: '#4a4a55' };
-const ROWS_CALICO = catRows({ 3: '.oppffffffkkffo...', 10: '.offkkfffffpffo...' });
-const PAL_CALICO = { o: '#4a3b35', f: '#f5f2ec', p: '#e8963e', k: '#33333a', i: '#e8a58a', c: '#ff9eb5', e: '#3b2d42', m: '#3b2d42', T: '#33333a' };
-const ROWS_SIAMESE = catRows({ 5: '.ocffkkmmkkffco...' });
+const PAL_GOURMAND = { o: '#17151c', f: '#2a2a31', i: '#8a5560', c: '#ff8fa8', e: '#f2a24a', m: '#0d0c10', T: '#3d3d46' };
+const ROWS_CALICO = catRows({ 4: '.opppppffffffffkkkko..', 14: '..offffppppffffffoTTo.' });
+const PAL_CALICO = { o: '#4a3b35', f: '#f5f2ec', p: '#e8963e', k: '#33333a', i: '#e8a58a', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#33333a' };
+const ROWS_SIAMESE = catRows({
+    7: 'offfkkeekkkkeekkkffo..',
+    8: 'ocffkkkkkmmkkkkkkfco..',
+    9: '.offfkkkkkmkkkkkfffo..',
+});
 const PAL_SIAMESE = { o: '#3f3028', f: '#e8dcc8', k: '#5a4434', i: '#5a4434', c: '#ff9eb5', e: '#5aa8d8', m: '#2c2018', T: '#5a4434' };
 const PAL_KITTEN_ORANGE = { o: '#5a3510', f: '#e8963e', i: '#f5c9a8', c: '#ff9eb5', e: '#3a2410', m: '#3a2410', T: '#c9752a' };
 
@@ -543,7 +563,7 @@ const interiors = {
     },
     hearts: {
         w: 560, h: 420, wall: '#c9a08a', floor: '#e8cfa8', floorAlt: '#dfc49a',
-        solids: [{ x: 70, y: 120, w: 100, h: 70 }, { x: 430, y: 150, w: 100, h: 140 },
+        solids: [{ x: 66, y: 116, w: 108, h: 78 }, { x: 430, y: 150, w: 100, h: 140 },
                  { x: mama.x - 11, y: mama.y - 8, w: 22, h: 12 },
                  { x: kitten1.x - 9, y: kitten1.y - 6, w: 18, h: 10 }, { x: kitten2.x - 9, y: kitten2.y - 6, w: 18, h: 10 }],
         deco(s) {
@@ -558,24 +578,29 @@ const interiors = {
             s.strokeStyle = '#d898b0'; s.lineWidth = 4; s.stroke();
             s.strokeStyle = '#f0d0dc'; s.lineWidth = 2;
             s.beginPath(); s.ellipse(300, 310, 120, 54, 0, 0, 7); s.stroke();
-            // Печь с пирогом
-            s.fillStyle = '#4a4a52'; s.fillRect(70, 120, 100, 70);
-            s.strokeStyle = '#2e2e35'; s.lineWidth = 3; s.strokeRect(70, 120, 100, 70);
-            s.fillStyle = '#f28c3a'; s.fillRect(95, 152, 50, 30);
-            s.strokeStyle = '#2e2e35'; s.lineWidth = 2;
-            s.beginPath(); s.moveTo(95, 162); s.lineTo(145, 162); s.moveTo(95, 172); s.lineTo(145, 172); s.stroke();
-            s.fillStyle = '#e8b870'; s.beginPath(); s.arc(120, 114, 18, 0, 7); s.fill();
-            s.strokeStyle = '#c9945a'; s.stroke();
+            // Настоящая печь: труба, кирпичный корпус, арка топки с огнём, пирог сверху
+            s.fillStyle = '#8f8880'; s.fillRect(104, 56, 26, 62);
+            s.fillStyle = '#7a746c'; s.fillRect(100, 50, 34, 10);
+            s.fillStyle = '#ddd2c4'; rr(s, 66, 116, 108, 78, 8); s.fill();
+            s.strokeStyle = '#a89684'; s.lineWidth = 3; s.stroke();
+            s.strokeStyle = '#c9b8a2'; s.lineWidth = 2;
+            for (let by = 130; by < 190; by += 14) { s.beginPath(); s.moveTo(70, by); s.lineTo(170, by); s.stroke(); }
+            s.beginPath();
+            s.moveTo(95, 130); s.lineTo(95, 144); s.moveTo(140, 130); s.lineTo(140, 144);
+            s.moveTo(115, 158); s.lineTo(115, 172); s.moveTo(150, 158); s.lineTo(150, 172);
+            s.stroke();
+            s.fillStyle = '#3a3028'; s.beginPath(); s.arc(120, 188, 26, Math.PI, 0); s.fill();
+            s.fillStyle = '#f28c3a'; s.beginPath(); s.arc(120, 189, 16, Math.PI, 0); s.fill();
+            s.fillStyle = '#ffd166'; s.beginPath(); s.arc(120, 190, 8, Math.PI, 0); s.fill();
+            s.fillStyle = '#e8b870'; s.beginPath(); s.arc(150, 110, 15, 0, 7); s.fill();
+            s.strokeStyle = '#c9945a'; s.lineWidth = 2; s.stroke();
+            s.fillStyle = '#d89a50'; s.beginPath(); s.arc(150, 110, 8, 0, 7); s.fill();
             s.strokeStyle = '#f5f0e0'; s.lineWidth = 2;
-            s.beginPath(); s.moveTo(112, 88); s.quadraticCurveTo(108, 80, 112, 72); s.moveTo(126, 88); s.quadraticCurveTo(130, 80, 126, 72); s.stroke();
+            s.beginPath(); s.moveTo(144, 90); s.quadraticCurveTo(140, 82, 144, 74); s.moveTo(156, 90); s.quadraticCurveTo(160, 82, 156, 74); s.stroke();
             // Диван
             s.fillStyle = '#c98a8a'; rr(s, 430, 150, 100, 140, 12); s.fill();
             s.strokeStyle = '#9a5f5f'; s.lineWidth = 3; s.stroke();
             s.fillStyle = '#e8b0a8'; rr(s, 440, 160, 80, 55, 8); s.fill(); rr(s, 440, 222, 80, 55, 8); s.fill();
-            // Клубок для котят
-            s.fillStyle = '#6fc3ff'; s.beginPath(); s.arc(328, 328, 9, 0, 7); s.fill();
-            s.strokeStyle = '#4a9ad8'; s.lineWidth = 1.5;
-            s.beginPath(); s.arc(328, 328, 5, 0.5, 2.6); s.stroke();
         },
     },
 };
@@ -693,16 +718,16 @@ function beginKidnapScene() {
     mekas.x = cam.x - 60; mekas.y = ry; mekas.visible = true;
     startCutscene([
         { do: () => { game.focus = mekas; } },
-        { move: mekas, x: player.x - 88, y: ry, speed: 4.6 },
+        { move: mekas, x: player.x - 120, y: ry, speed: 4.6 },
         { do: () => { mekas.flip = false; game.focus = player; } },
         { say: [
             { n: 'Буба Мекас', t: 'БУБА!!! С ДНЁМ РОЖДЕНИЯ!!!' },
             { n: 'Буба Мекас', t: 'Я ПРИГОТОВИЛ ДЛЯ ТЕБЯ ПОДАРОК..' },
         ] },
-        { do: () => { playBad(); biker.x = cam.x + VIEW_W + 90; biker.y = ry - 2; biker.visible = true; game.focus = biker; } },
-        { move: biker, x: player.x - 88 + 80, y: ry - 2, speed: 11 },
+        { do: () => { playBad(); biker.x = cam.x + VIEW_W + 90; biker.y = ry + 4; biker.visible = true; game.focus = biker; } },
+        { move: biker, x: player.x - 114, y: ry + 4, speed: 11 },
         { say: [{ n: '???', t: '*ВЖЖЖУХ!!! ...визг тормозов...*' }] },
-        { do: () => { mekas.visible = false; bag.visible = true; bag.x = mekas.x; bag.y = mekas.y + 2; bag.shakeUntil = now + 900; game.focus = player; } },
+        { do: () => { mekas.visible = false; bag.visible = true; bag.x = player.x - 66; bag.y = ry + 8; bag.shakeUntil = now + 900; game.focus = player; } },
         { wait: 600 },
         { say: [
             { n: 'Котик-байкер', t: 'ВОТ И ВЩЬО, БУБА ЩОНЯ!' },
@@ -712,10 +737,10 @@ function beginKidnapScene() {
             { n: 'Котик-байкер', t: 'ЭТО МОЯ МЕСТЬ!!! МУХАХАХА-МЯУ!' },
         ] },
         { do: () => { bag.attached = true; game.focus = biker; } },
-        { wait: 300 },
-        { move: biker, x: player.x + 200, y: ry - 2, speed: 9 },
-        { do: () => { card.visible = true; card.x = biker.x - 30; card.y = ry + 12; } },
-        { move: biker, x: WORLD_W + 160, y: ry - 2, speed: 13 },
+        { wait: 350 },
+        { move: biker, x: player.x + 230, y: ry + 4, speed: 9 },
+        { do: () => { card.visible = true; card.x = biker.x - 44; card.y = ry + 16; } },
+        { move: biker, x: WORLD_W + 160, y: ry + 4, speed: 13 },
         { do: () => { biker.visible = false; bag.visible = false; stopMusic(); game.focus = player; } },
         { wait: 500 },
         { say: [
@@ -745,7 +770,7 @@ const npcs = [
     { loc: 'city', a: barista, name: 'Кися-бариста', lines: [
         '* Мур! Сама Буба Щоня зашла в наш район!',
         '* Заходи на чашечку мур-чино! Сегодня для тебя — бесплатно.',
-        '* Почему бесплатно? Хи-хи... Скоро узнаешь!',
+        '* Только не говори нашему бухгалтеру. Он хомяк, и он ОЧЕНЬ строгий!',
     ] },
     { loc: 'city', a: sleeper, name: 'Сонный котик', lines: [
         '* Хррр... мяу... ещё пять минуточек...',
@@ -778,15 +803,17 @@ const npcs = [
         '* Секретный ингредиент? Мур-р... Любовь. И три банки сметаны.',
     ] },
     { loc: 'hearts', a: kitten1, name: 'Котёнок', lines: [
-        '* Мы тренируемся быть самыми пушистыми на празднике!',
+        '* Пливееееет! Мы тут точно ничо не прячем!',
+        '* По типу САМОГО КРУТОГО МЯЧИКА, об который очень удобно точить свои когтики и играть с ним!',
+        '* У нас точно такого нет! И мы вообще не готовим ни для кого подарков! Мяу!',
     ] },
     { loc: 'hearts', a: kitten2, name: 'Котёнок', lines: [
         '* Тс-с! Мы прячемся! Ты нас не видела! Мяу!',
     ] },
     { loc: 'city', a: shopkeeper, name: 'Котик-лавочник', lines: [
         '* МЯУ-МЯУ-МЯУ!!! Я ВСЁ ВИДЕЛ!!!',
-        '* Я как раз протирал банки с валерьянкой, и тут — ВЖУХ! Байкер! Пакет! Похищение!',
-        '* У меня от страха хвост распушился, как ёлка! ...Ну ладно, уже опушился обратно.',
+        '* Я как раз лежал на крыльце на солнышке и наслаждался погодкой, и тут — ВЖУХ! Байкер! Клетка! Похищение!',
+        '* Я от страха мяукнул задом наперёд! УЯМ! Попробуй сама — жуть как страшно звучит!',
         '* Это же тот самый Котик-байкер. Говорят, он однажды украл целый грузовик сметаны!',
         '* Потайной лес, говоришь? Просто так туда не попасть — вход спрятан магией.',
         '* Но не переживай! Наш Котик-маг знает дорогу — он в том лесу грибы собирает.',
@@ -819,11 +846,10 @@ function interactables() {
         } else if (b.mage) {
             list.push({ x: doorX, y: doorY, act: () => {
                 const lines = [
-                    { n: 'Записка на двери', t: '«Ушёл за волшебной валерьянкой. Буду поздно. НЕ СТУЧАТЬ — КОТ СПИТ!»' },
-                    { n: 'Записка на двери', t: '«...Хотя стоп, я же и есть кот, и я ушёл. В общем, скоро буду! — Котик-маг ✦»' },
+                    { n: '', t: '* Слышно, как кто-то волшебничает за дверью и помуркивает.' },
                 ];
                 if (game.quest === 'mage') {
-                    lines.push({ n: 'Буба Щоня', t: 'Эх... придётся немного подождать.' });
+                    lines.push({ n: 'Буба Щоня', t: 'Кажется, котик-маг очень занят волшебством...' });
                     lines.push({ n: 'Буба Щоня', t: 'Держись, Мекас! Я обязательно спасу тебя и подарок!' });
                     showDialogue(lines, () => { setQuest('done'); openTbc(); });
                 } else {
@@ -882,9 +908,9 @@ function closeTbc() {
 // Фото на визитке
 (function renderCardPhoto() {
     const pc = document.getElementById('cardPhoto').getContext('2d');
-    const spr = buildSprite(ROWS_BIKER_KIND, PAL_BIKER_KIND, 6);
+    const spr = buildSprite(ROWS_BIKER_KIND, PAL_BIKER_KIND, 5);
     pc.imageSmoothingEnabled = false;
-    pc.drawImage(spr, (120 - spr.width) / 2, 120 - spr.height - 10);
+    pc.drawImage(spr, Math.round((120 - spr.width) / 2), Math.round((120 - spr.height) / 2) + 4);
 })();
 
 // Витрина персонажа на титульнике
@@ -893,7 +919,7 @@ function closeTbc() {
     tc.imageSmoothingEnabled = false;
     const spr = player.spr;
     tc.drawImage(spr, 0, 0, spr.width, spr.height,
-        Math.round((120 - spr.width * 2) / 2), Math.round((100 - spr.height * 2) / 2), spr.width * 2, spr.height * 2);
+        Math.round((140 - spr.width * 2) / 2), Math.round((126 - spr.height * 2) / 2), spr.width * 2, spr.height * 2);
 })();
 
 // Сердечки на титульнике
@@ -941,7 +967,7 @@ function update() {
         if (keys['a'] || keys['arrowleft']) dx -= 1;
         if (keys['d'] || keys['arrowright']) dx += 1;
         if (dx && dy) { dx *= 0.707; dy *= 0.707; }
-        const sp = 3.4;
+        const sp = 2.6;
         player.moving = !!(dx || dy);
         const inCity = game.loc === 'city';
         const I = inCity ? null : interiors[game.loc];
@@ -957,16 +983,19 @@ function update() {
             if (!hitSolid(player.x, ny)) player.y = ny;
         }
 
-        // Триггер главной кат-сцены — городская площадь
-        if (inCity && game.quest === 'explore' && player.x > 640 && player.x < 928 && player.y > 424 && player.y < 570) {
+        // Триггер главной кат-сцены — подход к рыбному рынку
+        if (inCity && game.quest === 'explore' && player.x > 930 && player.x < 1160 && player.y > 420 && player.y < 565) {
             beginKidnapScene();
         }
     } else {
         player.moving = false;
     }
 
-    // Пакет привязан к мотоциклу
-    if (bag.attached && biker.visible) { bag.x = biker.x - 10; bag.y = biker.y - 34; }
+    // Клетка закреплена на багажнике мотоцикла
+    if (bag.attached && biker.visible) {
+        bag.x = biker.x + (biker.flip ? 46 : -46);
+        bag.y = biker.y - 24;
+    }
 
     // Танцор пританцовывает
     dancer.flip = Math.floor(now / 420) % 2 === 0;
@@ -1150,50 +1179,77 @@ function drawBikerBike() {
     g.save();
     g.translate(X, Y);
     if (biker.flip) g.scale(-1, 1);
-    // Дым из трубы при движении
+    // Дым из выхлопа при движении
     if (biker.moving) {
         g.fillStyle = 'rgba(230,230,230,0.5)';
         for (let i = 0; i < 3; i++) {
-            g.beginPath(); g.arc(-52 - i * 14, -20 - Math.sin(now * 0.02 + i) * 4, 5 + i * 2, 0, 7); g.fill();
+            g.beginPath(); g.arc(-70 - i * 15, -22 - Math.sin(now * 0.02 + i) * 4, 5 + i * 2, 0, 7); g.fill();
         }
     }
-    // Колёса
-    [-26, 26].forEach(cx => {
-        g.fillStyle = '#20202a'; g.beginPath(); g.arc(cx, -14, 13, 0, 7); g.fill();
-        g.fillStyle = '#9aa2ab'; g.beginPath(); g.arc(cx, -14, 5, 0, 7); g.fill();
+    // Колёса: шина, обод, ступица
+    [-38, 42].forEach(cx => {
+        g.fillStyle = '#1c1c24'; g.beginPath(); g.arc(cx, -18, 18, 0, 7); g.fill();
+        g.strokeStyle = '#8a919a'; g.lineWidth = 3;
+        g.beginPath(); g.arc(cx, -18, 11, 0, 7); g.stroke();
+        g.fillStyle = '#c6ccd4'; g.beginPath(); g.arc(cx, -18, 4, 0, 7); g.fill();
     });
-    // Рама
-    g.fillStyle = '#c2453f'; rr(g, -34, -40, 64, 18, 7); g.fill();
-    g.strokeStyle = '#3f3345'; g.lineWidth = 2; g.stroke();
     // Выхлопная труба
-    g.fillStyle = '#8d949c'; g.fillRect(-46, -26, 14, 7);
-    // Руль
-    g.strokeStyle = '#3f3345'; g.lineWidth = 4;
-    g.beginPath(); g.moveTo(28, -38); g.lineTo(38, -58); g.stroke();
-    g.fillStyle = '#2c2c35'; g.fillRect(34, -62, 10, 6);
+    g.fillStyle = '#9aa2ab'; rr(g, -60, -28, 34, 8, 3); g.fill();
+    g.fillStyle = '#7d858e'; rr(g, -66, -30, 11, 12, 3); g.fill();
+    // Заднее крыло
+    g.strokeStyle = '#c2453f'; g.lineWidth = 6;
+    g.beginPath(); g.arc(-38, -22, 23, Math.PI * 1.1, Math.PI * 1.8); g.stroke();
+    // Рама
+    g.strokeStyle = '#c2453f'; g.lineWidth = 7;
+    g.beginPath(); g.moveTo(-34, -38); g.lineTo(10, -44); g.lineTo(34, -38); g.stroke();
+    // Двигатель
+    g.fillStyle = '#5a5f68'; rr(g, -14, -36, 28, 18, 4); g.fill();
+    g.strokeStyle = '#3a3a44'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(-10, -30); g.lineTo(10, -30); g.moveTo(-10, -25); g.lineTo(10, -25); g.stroke();
+    // Бензобак с бликом
+    g.fillStyle = '#d84f48'; g.beginPath(); g.ellipse(6, -48, 18, 10, 0, 0, 7); g.fill();
+    g.strokeStyle = '#8a2f2a'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.ellipse(2, -51, 8, 3, 0, 0, 7); g.fill();
+    // Седло
+    g.fillStyle = '#232329'; rr(g, -42, -52, 26, 10, 4); g.fill();
+    // Передняя вилка и руль
+    g.strokeStyle = '#3a3a44'; g.lineWidth = 5;
+    g.beginPath(); g.moveTo(34, -40); g.lineTo(42, -20); g.stroke();
+    g.lineWidth = 4;
+    g.beginPath(); g.moveTo(32, -44); g.lineTo(40, -62); g.stroke();
+    g.fillStyle = '#232329'; rr(g, 36, -66, 11, 6, 3); g.fill();
     // Фара
-    g.fillStyle = '#ffd166'; g.beginPath(); g.arc(38, -34, 4, 0, 7); g.fill();
-    // Сиденье
-    g.fillStyle = '#222229'; rr(g, -26, -46, 26, 8, 3); g.fill();
-    // Котик-байкер
-    g.drawImage(bikerCatSpr, -30, -89);
+    g.fillStyle = '#ffd166'; g.beginPath(); g.arc(45, -52, 5, 0, 7); g.fill();
+    g.strokeStyle = '#3a3a44'; g.lineWidth = 2; g.stroke();
+    // Котик-байкер в седле
+    g.drawImage(bikerCatSpr, -62, -108);
     g.restore();
 }
 
-function drawBag() {
+function drawBag() { // клетка, в которой чуть виден Мекас
     if (!bag.visible) return;
     const shake = now < bag.shakeUntil ? Math.sin(now * 0.06) * 3 : 0;
     const X = sx(bag.x) + shake, Y = sy(bag.y);
-    g.fillStyle = '#8a6a44';
-    rr(g, X - 26, Y - 52, 52, 52, 12); g.fill();
-    g.strokeStyle = '#5c4426'; g.lineWidth = 3; g.stroke();
-    g.fillStyle = '#6e5233'; g.fillRect(X - 9, Y - 60, 18, 10);
-    g.strokeStyle = '#5c4426'; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(X - 12, Y - 55); g.lineTo(X + 12, Y - 55); g.stroke();
+    // тёмное нутро клетки
+    g.fillStyle = '#241d2b'; rr(g, X - 27, Y - 56, 54, 56, 8); g.fill();
+    // Мекас внутри, приглушённый
+    g.save();
+    g.globalAlpha = 0.85;
+    g.drawImage(mekas.spr, X - 22, Y - 50, 44, 40);
+    g.restore();
+    // прутья
+    g.strokeStyle = '#9aa2ab'; g.lineWidth = 3;
+    for (let i = -18; i <= 18; i += 9) {
+        g.beginPath(); g.moveTo(X + i, Y - 54); g.lineTo(X + i, Y - 2); g.stroke();
+    }
+    // рамка и ручка
+    g.strokeStyle = '#5a5f68'; g.lineWidth = 4;
+    rr(g, X - 27, Y - 56, 54, 56, 8); g.stroke();
+    g.beginPath(); g.arc(X, Y - 58, 8, Math.PI, 0); g.stroke();
     if (now < bag.shakeUntil + 1400) {
         g.fillStyle = '#fff';
         g.font = 'bold 18px Courier New';
-        g.fillText('!!', X + 20, Y - 58);
+        g.fillText('!!', X + 32, Y - 58);
     }
 }
 
@@ -1227,7 +1283,7 @@ function drawFountainWater() {
 function drawMarkerAndHint() {
     // «!» над лавочником
     if (game.loc === 'city' && shopkeeper.visible && shopkeeper.mark) {
-        const X = sx(shopkeeper.x), Y = sy(shopkeeper.y) - 56 - Math.abs(Math.sin(now * 0.006)) * 7;
+        const X = sx(shopkeeper.x), Y = sy(shopkeeper.y) - 70 - Math.abs(Math.sin(now * 0.006)) * 7;
         g.font = 'bold 28px Courier New';
         g.lineWidth = 4; g.strokeStyle = '#4a3b45'; g.strokeText('!', X - 5, Y);
         g.fillStyle = '#ffd21f'; g.fillText('!', X - 5, Y);
@@ -1236,7 +1292,7 @@ function drawMarkerAndHint() {
     if (game.mode === 'explore' && !dlg.active && !overlayOpen) {
         const it = nearestInteractable();
         if (it) {
-            const X = sx(it.x), Y = sy(it.y) - 62;
+            const X = sx(it.x), Y = sy(it.y) - 72;
             g.fillStyle = 'rgba(255,255,255,0.92)';
             rr(g, X - 11, Y - 11, 22, 22, 5); g.fill();
             g.strokeStyle = '#4a3b45'; g.lineWidth = 2; g.stroke();
@@ -1250,6 +1306,15 @@ function renderInterior() {
     const I = interiors[game.loc];
     g.fillStyle = '#161020'; g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.drawImage(I.canvas, -Math.round(cam.x), -Math.round(cam.y));
+    // Мячик, который котята «прячут» за спинами (чуть выглядывает)
+    if (game.loc === 'hearts') {
+        const bx = sx(374), by = sy(322);
+        g.fillStyle = '#e0576f'; g.beginPath(); g.arc(bx, by, 11, 0, 7); g.fill();
+        g.strokeStyle = '#ffffff'; g.lineWidth = 4;
+        g.beginPath(); g.arc(bx, by, 6, 0.4, 2.7); g.stroke();
+        g.strokeStyle = '#b83a52'; g.lineWidth = 2;
+        g.beginPath(); g.arc(bx, by, 11, 0, 7); g.stroke();
+    }
     const ents = [{ y: player.y, d: () => drawActor(player) }];
     for (const n of npcs) {
         if (n.loc === game.loc && n.a.visible) ents.push({ y: n.a.y, d: () => drawActor(n.a) });
@@ -1271,8 +1336,8 @@ function render() {
     for (const n of [barista, sleeper, dancer, yarnKitten, shopkeeper]) {
         if (n.visible) ents.push({ y: n.y, d: () => drawActor(n) });
     }
-    if (mekas.visible) ents.push({ y: mekas.y, d: () => { drawActor(mekas); drawGift(mekas.x + 2, mekas.y - 52); } });
-    if (bag.visible && !bag.attached) ents.push({ y: bag.y, d: drawBag });
+    if (mekas.visible) ents.push({ y: mekas.y, d: () => { drawActor(mekas); drawGift(mekas.x + 2, mekas.y - 66); } });
+    if (bag.visible && !bag.attached) ents.push({ y: bag.y + 12, d: drawBag });
     if (biker.visible) ents.push({ y: biker.y + 12, d: () => { drawBikerBike(); if (bag.attached) drawBag(); } });
     ents.sort((a, b) => a.y - b.y);
     ents.forEach(e => e.d());
@@ -1311,7 +1376,7 @@ requestAnimationFrame(loop);
 // #auto — кат-сцена с автопрокруткой диалогов, #mage — у дома мага
 if (['#test', '#scene', '#auto', '#mage'].includes(location.hash)) {
     startGame();
-    if (location.hash === '#scene' || location.hash === '#auto') { player.x = 700; player.y = 480; }
+    if (location.hash === '#scene' || location.hash === '#auto') { player.x = 1000; player.y = 480; }
     if (location.hash === '#auto') setInterval(() => { if (dlg.active) advanceDialogue(); }, 700);
     if (location.hash === '#mage') { setQuest('mage'); player.x = 1296; player.y = 852; }
 }
