@@ -41,7 +41,7 @@ game sprite, top-down RPG, transparent background):
 
 | Персонаж | Промпт |
 |---|---|
-| Буба Щоня | black cat with a pink bow and a small flower on its head, orange eyes, cute pixel art sprite, sitting |
+| Буба Щоня | white cat with a pink bow and a small flower on its head, blue eyes, cute pixel art sprite, sitting |
 | Буба Мекас | brown tabby cat, cute pixel art sprite, sitting, pink cheeks |
 | Котик-байкер | grey tabby cat in a black leather jacket and sunglasses riding a red motorcycle, pixel art sprite, side view |
 | Котик-лавочник | brown cat wearing a green shop apron, pixel art sprite |

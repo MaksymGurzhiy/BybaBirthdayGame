@@ -346,14 +346,14 @@ function catRows(mod) { // mod: {row: 'строка'} — замены стро�
 const STRIPE_HEAD = '.ofvffvfffvvfffvffo...'; // полоски на голове для табби
 const STRIPE_BODY = '..ofvffvffvvffvffoTTo.'; // полоски на теле
 
-// Буба Щоня — чёрная кошечка с розовым бантиком и цветочком на голове
+// Буба Щоня — БЕЛАЯ киса с розовым бантиком и цветочком на голове (главная героиня!)
 const ROWS_SHONYA = catRows({
     0: '...oo........bbbb.....',
     1: '..oiio..pyp.bbbbbbb...',
     2: '..oiiio.....bbbbb.....',
     3: '.ooiiiooooooobbboo....',
 });
-const PAL_SHONYA = { o: '#17151c', f: '#2a2a31', i: '#f2a5b8', c: '#ff8fa8', e: '#f2a24a', m: '#0d0c10', T: '#3d3d46', b: '#ff70a6', p: '#ff9eb5', y: '#ffd166' };
+const PAL_SHONYA = { o: '#4a4448', f: '#f8f6f2', i: '#f2a5b8', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#e0dcd4', b: '#ff70a6', p: '#ff8fb3', y: '#ffd166' };
 
 // Буба Мекас — коричневый полосатый котик
 const ROWS_MEKAS = catRows({ 4: STRIPE_HEAD, 15: STRIPE_BODY });
@@ -389,7 +389,8 @@ const PAL_SHOPKEEPER = { o: '#5a3510', f: '#e8963e', v: '#c9752a', i: '#f5c9a8',
 const PAL_BARISTA = { o: '#4a3b2a', f: '#f1e0bf', i: '#e8b88a', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#e0c8a0' };
 const ROWS_SLEEPER = catRows({ 7: 'off--ffffffffff--ffo..' });
 const PAL_SLEEPER = { o: '#3a3f46', f: '#707880', '-': '#3a3f46', i: '#5c646c', c: '#c98a98', e: '#3a3f46', m: '#3a3f46', T: '#5c646c' };
-const PAL_DANCER = { o: '#4a4448', f: '#f6f4ee', i: '#f2a5b8', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#e0dcd4' };
+// Танцор — чёрный котик (Щоня теперь белая)
+const PAL_DANCER = { o: '#17151c', f: '#2a2a31', i: '#8a5560', c: '#ff8fa8', e: '#f2a24a', m: '#0d0c10', T: '#3d3d46' };
 const ROWS_TUXEDO = catRows({
     8: 'occffwwwwmmwwwwffcco..',
     9: '.offfwwwwwmwwwwwfffo..',
@@ -724,10 +725,14 @@ function beginKidnapScene() {
             { n: 'Буба Мекас', t: 'БУБА!!! С ДНЁМ РОЖДЕНИЯ!!!' },
             { n: 'Буба Мекас', t: 'Я ПРИГОТОВИЛ ДЛЯ ТЕБЯ ПОДАРОК..' },
         ] },
-        { do: () => { playBad(); biker.x = cam.x + VIEW_W + 90; biker.y = ry + 4; biker.visible = true; game.focus = biker; } },
-        { move: biker, x: player.x - 114, y: ry + 4, speed: 11 },
+        { do: () => { playBad(); biker.x = cam.x - 100; biker.y = ry + 4; biker.visible = true; game.focus = biker; } },
+        { move: biker, x: player.x - 270, y: ry + 4, speed: 11 },
         { say: [{ n: '???', t: '*ВЖЖЖУХ!!! ...визг тормозов...*' }] },
-        { do: () => { mekas.visible = false; bag.visible = true; bag.x = player.x - 66; bag.y = ry + 8; bag.shakeUntil = now + 900; game.focus = player; } },
+        { wait: 300 },
+        // Рывок: выхватывает Мекаса — клетка сразу на багажнике
+        { do: () => { mekas.visible = false; bag.visible = true; bag.attached = true; bag.x = biker.x - 46; bag.y = biker.y - 24; bag.shakeUntil = now + 1400; } },
+        { move: biker, x: player.x - 110, y: ry + 4, speed: 14 },
+        { do: () => { game.focus = player; } },
         { wait: 600 },
         { say: [
             { n: 'Котик-байкер', t: 'ВОТ И ВЩЬО, БУБА ЩОНЯ!' },
@@ -736,11 +741,11 @@ function beginKidnapScene() {
             { n: 'Котик-байкер', t: 'И БОЛЬШЕ ТЫ НИКОГДА МЕНЯ И ИХ НЕ НАЙДЕШЬ!!!' },
             { n: 'Котик-байкер', t: 'ЭТО МОЯ МЕСТЬ!!! МУХАХАХА-МЯУ!' },
         ] },
-        { do: () => { bag.attached = true; game.focus = biker; } },
+        { do: () => { game.focus = biker; } },
         { wait: 350 },
-        { move: biker, x: player.x + 230, y: ry + 4, speed: 9 },
-        { do: () => { card.visible = true; card.x = biker.x - 44; card.y = ry + 16; } },
-        { move: biker, x: WORLD_W + 160, y: ry + 4, speed: 13 },
+        { move: biker, x: player.x + 240, y: ry + 42, speed: 9 },
+        { do: () => { card.visible = true; card.x = biker.x - 50; card.y = ry + 40; } },
+        { move: biker, x: WORLD_W + 160, y: ry + 42, speed: 13 },
         { do: () => { biker.visible = false; bag.visible = false; stopMusic(); game.focus = player; } },
         { wait: 500 },
         { say: [
@@ -1346,8 +1351,6 @@ function render() {
     g.font = '14px Courier New';
     g.fillStyle = 'rgba(255,255,255,' + (0.5 + Math.sin(now * 0.004) * 0.4) + ')';
     g.fillText('z-Z', sx(sleeper.x) + 16, sy(sleeper.y) - 46 - Math.sin(now * 0.003) * 4);
-    g.font = '15px Courier New';
-    g.fillText('☕', sx(barista.x) + 18, sy(barista.y) - 12);
     // Клубок
     const yb = { x: yarnKitten.x + 24, y: yarnKitten.y - 2 };
     g.fillStyle = '#e0576f'; g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 8, 0, 7); g.fill();
