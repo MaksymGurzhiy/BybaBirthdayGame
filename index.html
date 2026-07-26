@@ -346,14 +346,14 @@ function catRows(mod) { // mod: {row: 'строка'} — замены стро�
 const STRIPE_HEAD = '.ofvffvfffvvfffvffo...'; // полоски на голове для табби
 const STRIPE_BODY = '..ofvffvffvvffvffoTTo.'; // полоски на теле
 
-// Буба Щоня — БЕЛАЯ киса с розовым бантиком и цветочком на голове (главная героиня!)
+// Буба Щоня — БЕЛАЯ киса, оба ушка на месте, цветочек заткнут за правое ушко
 const ROWS_SHONYA = catRows({
-    0: '..pp.pp......bbbb.....',
-    1: '..pyyyp.....bbbbbbb...',
-    2: '..pp.pp.....bbbbb.....',
-    3: '.oodddooooooobbboo....',
+    0: '...oo.........oo.pp.pp',
+    1: '..oiio.......oiiopyyyp',
+    2: '..oiiio.....oiiiopp.pp',
+    3: '.ooiiioooooooiiiiood..',
 });
-const PAL_SHONYA = { o: '#4a4448', f: '#f8f6f2', i: '#f2a5b8', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#e0dcd4', b: '#ff70a6', p: '#ff8fb3', y: '#ffd166', d: '#5da85c' };
+const PAL_SHONYA = { o: '#4a4448', f: '#f8f6f2', i: '#f2a5b8', c: '#ff9eb5', e: '#5aa8d8', m: '#3b2d42', T: '#e0dcd4', p: '#ff8fb3', y: '#ffd166', d: '#5da85c' };
 
 // Буба Мекас — коричневый полосатый котик
 const ROWS_MEKAS = catRows({ 4: STRIPE_HEAD, 15: STRIPE_BODY });
