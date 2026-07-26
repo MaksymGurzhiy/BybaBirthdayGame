@@ -4,7 +4,8 @@
 
 ## 📖 Сюжет — Часть 1 (готова)
 
-1. Буба Щоня гуляет по городу котиков и общается с жителями (все что-то готовят втайне...)
+1. Буба Щоня гуляет по городу котиков и общается с жителями (все что-то готовят втайне...).
+   В рыбный рынок, цветочную лавку и дом с сердечками можно заходить — внутри живут котики!
 2. На площади её встречает Буба Мекас с подарком: «БУБА, С ДНЁМ РОЖДЕНИЯ!»
 3. Котик-байкер на мотоцикле крадёт Мекаса вместе с подарком в огромный пакет — это его месть!
 4. Из кармана злодея выпадает **визитка** с адресом: «Королевство злодеяний, Потайной лес, кв. 19»
@@ -40,8 +41,8 @@ game sprite, top-down RPG, transparent background):
 
 | Персонаж | Промпт |
 |---|---|
-| Буба Щоня | white cat with a pink bow, cute pixel art sprite, front view |
-| Буба Мекас | orange cartoon cat with a small green sprout on its head, holding a gift box, pixel art sprite |
+| Буба Щоня | black cat with a pink bow and a small flower on its head, orange eyes, cute pixel art sprite, sitting |
+| Буба Мекас | brown tabby cat, cute pixel art sprite, sitting, pink cheeks |
 | Котик-байкер | grey tabby cat in a black leather jacket and sunglasses riding a red motorcycle, pixel art sprite, side view |
 | Котик-лавочник | brown cat wearing a green shop apron, pixel art sprite |
 | Котик-маг (часть 2) | grey cat in a purple wizard hat and robe with stars, pixel art sprite |
