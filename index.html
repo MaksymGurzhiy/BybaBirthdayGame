@@ -2005,6 +2005,14 @@ addEventListener('keydown', (e) => {
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
     keys[k] = true;
     if (e.repeat) return;
+    if (k === 'o' && !dlg.active && !cs && game.loc !== 'thicket') {
+        if (game.mode === 'title') startGame();
+        else if (overlayOpen) return;
+        mageDoorStage = 3;
+        enterThicket();
+        musicBad.play().catch(() => {});
+        return;
+    }
     if (overlayOpen) {
         // Кнопку-подсказку (стук в дверь) можно нажать и клавишей
         if ((k === 'e' || k === 'enter' || k === ' ') && promptBox.style.display === 'block') {
