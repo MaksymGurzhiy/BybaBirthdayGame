@@ -199,6 +199,29 @@
     #cardPhotoWrap .cap { font-size: 12px; color: #8a7a68; margin-top: 4px; }
     #cardScreen .btn { margin-top: 24px; }
 
+    /* ---- Кнопки-подсказки (стук в дверь) ---- */
+    #promptBox {
+        display: none;
+        position: absolute;
+        bottom: 150px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 12;
+        text-align: center;
+    }
+    #promptBox .btn { display: block; margin: 10px auto; font-size: 17px; padding: 12px 30px; }
+
+    /* ---- Отправление в Потайной лес ---- */
+    #journeyScreen { background: linear-gradient(160deg, #10241a 0%, #1d3a2a 55%, #101f24 100%); }
+    #journeyScreen h1 {
+        font-size: 42px;
+        color: #9bde7e;
+        text-shadow: 0 0 20px rgba(120,220,120,0.4);
+        margin-bottom: 14px;
+    }
+    #journeyScreen p { font-size: 18px; max-width: 540px; line-height: 1.7; margin-bottom: 26px; opacity: 0.9; }
+    #journeyScreen .btn { max-width: 90vw; white-space: normal; line-height: 1.5; }
+
     /* ---- Продолжение следует ---- */
     #tbcScreen { background: rgba(20, 8, 26, 0.93); }
     #tbcScreen h1 {
@@ -222,6 +245,7 @@
         <div id="dlgText"></div>
         <div id="dlgCont">▼ E / клик</div>
     </div>
+    <div id="promptBox"></div>
 </div>
 <div id="controlsHint">WASD / стрелки — ходить &nbsp;·&nbsp; E или Пробел — говорить и действовать</div>
 
@@ -253,12 +277,22 @@
     <button class="btn" onclick="closeCard()">Спрятать визитку 💼</button>
 </div>
 
+<!-- Отправление в Потайной лес -->
+<div id="journeyScreen" class="overlay">
+    <h1>✦ Потайной лес ✦</h1>
+    <p>Ловушки, колючие заросли и злые звери...<br>
+       Но где-то там байкер прячет Мекаса и подарок!</p>
+    <button class="btn" onclick="startForest()">Отправиться в путешествие в поисках Бубы и его подарка 🎒</button>
+    <button class="btn" style="margin-top:14px; opacity:0.85" onclick="closeJourney()">Ещё немного подготовлюсь 🐾</button>
+</div>
+
 <!-- Продолжение следует -->
 <div id="tbcScreen" class="overlay">
     <h1>ПРОДОЛЖЕНИЕ СЛЕДУЕТ...</h1>
-    <p>Котик-маг скоро вернётся, и Буба Щоня отправится в Потайной лес —
-       спасать Мекаса и свой подарок! ❤️</p>
-    <button class="btn" onclick="closeTbc()">Погулять по городу 🐾</button>
+    <p>Буба Щоня и её храбрый ёжик прошли первые испытания Потайного леса!<br>
+       Впереди — самая тёмная чаща, Королевство злодеяний и квартира 19...<br>
+       Часть 3 уже готовится ❤️</p>
+    <button class="btn" onclick="returnToCity()">Вернуться в город 🏠</button>
 </div>
 
 <audio id="musicGood" src="music_good.wav" loop></audio>
@@ -412,6 +446,34 @@ const ROWS_SIAMESE = catRows({
 const PAL_SIAMESE = { o: '#3f3028', f: '#e8dcc8', k: '#5a4434', i: '#5a4434', c: '#ff9eb5', e: '#5aa8d8', m: '#2c2018', T: '#5a4434' };
 const PAL_KITTEN_ORANGE = { o: '#5a3510', f: '#e8963e', i: '#f5c9a8', c: '#ff9eb5', e: '#3a2410', m: '#3a2410', T: '#c9752a' };
 
+// Котик-маг — фиолетовая шляпа со звездой и мантия со звёздами
+const ROWS_MAGE = catRows({
+    0: '........ohho..........',
+    1: '.......ohhhho.........',
+    2: '......ohhyhhho........',
+    3: '.oohhhhhhhhhhhhhhoo...',
+    12: '...orrrrrrrrrrrro.....',
+    13: '...orrrryrrrrrryo.TTo.',
+    14: '..orrrrrrryrrrrrroTTo.',
+    15: '..orrrrrrrrrrrrrroTTo.',
+    16: '.orrrrrrrrrrrrrrrroTo.',
+});
+const PAL_MAGE = { o: '#3a3345', f: '#b8bcc9', i: '#9aa0ad', c: '#c98a98', e: '#7ac47a', m: '#2c2833', T: '#9aa0ad', h: '#7a5fa8', r: '#63549a', y: '#ffd166' };
+
+// Ёжик — маленький, колючий, деловитый (13 пикселей)
+const HEDGEHOG = [
+    '...oooooo....',
+    '..osssssso...',
+    '.osSsSsSsso..',
+    '.osSsSsSssoo.',
+    'osSsSsSsSoffo',
+    'osSsSsSsSofeo',
+    '.osSsSsSofnno',
+    '..ossssoofoo.',
+    '...oo.oo.oo..',
+];
+const PAL_HEDGEHOG = { o: '#2e2018', s: '#4a3626', S: '#6b4f38', f: '#e8c9a0', e: '#2e2018', n: '#1c130c' };
+
 function makeActor(rows, pal, scale, x, y) {
     const spr = buildSprite(rows, pal, scale || 3);
     return { x: x || 0, y: y || 0, spr, sprF: flipSprite(spr), flip: false, visible: true, moving: false, bob: Math.random() * 6.28 };
@@ -434,6 +496,8 @@ const florist = makeActor(ROWS_CALICO, PAL_CALICO, 3, 280, 236);
 const mama = makeActor(ROWS_SIAMESE, PAL_SIAMESE, 3, 140, 240);
 const kitten1 = makeActor(CAT, PAL_KITTEN_ORANGE, 2, 300, 310);
 const kitten2 = makeActor(ROWS_TUXEDO, PAL_TUXEDO, 2, 352, 332);
+const mage = makeActor(ROWS_MAGE, PAL_MAGE, 3); mage.visible = false;
+const hedgehog = makeActor(HEDGEHOG, PAL_HEDGEHOG, 2.5); hedgehog.visible = false;
 
 const bag = { x: 0, y: 0, visible: false, attached: false, shakeUntil: 0 };
 const card = { x: 0, y: 0, visible: false, taken: false };
@@ -445,7 +509,12 @@ const QUEST_TEXT = {
     card: '🐾 Задание: подними то, что выронил байкер (подойди и нажми E)',
     shopkeeper: '🐾 Задание: поговори с котиком-лавочником ❗',
     mage: '🐾 Задание: найди дом котика-мага — ниже по улице, крыша со звёздами ✦',
-    done: '❤ Задание: ждать продолжения... а пока можно гулять!',
+    mageTalk: '🐾 Задание: поговори с котиком-магом в его волшебном доме ✦',
+    forestIntro: '🌲 Задание: иди по тропе вглубь Потайного леса ➜',
+    trial1: '🌲 Испытание 1: перейди болото по плиткам! Ёжик чует безопасный путь',
+    trial2: '🌲 Испытание 2: проскочи колючие ворота, пока они открыты!',
+    forestEnd: '🌲 Задание: дойди до светлячковой поляны ➜',
+    done: '❤ Задание: ждать часть 3! А пока можно гулять с ёжиком',
 };
 function setQuest(q) {
     game.quest = q;
@@ -481,7 +550,14 @@ citySolids.push({ x: fountain.x - 58, y: fountain.y - 52, w: 116, h: 104 });
 
 function hitSolid(px, py) {
     const l = px - 13, t = py - 10, r = px + 13, btm = py + 5;
-    const list = game.loc === 'city' ? citySolids : interiors[game.loc].solids;
+    let list;
+    if (game.loc === 'city') list = citySolids;
+    else if (game.loc === 'forest') {
+        list = forestSolids;
+        for (let i = 0; i < GATES.length; i++) {
+            if (gateClosed(i) && r > GATES[i].x && l < GATES[i].x + GATE_W) return true;
+        }
+    } else list = interiors[game.loc].solids;
     for (const s of list) {
         if (r > s.x && l < s.x + s.w && btm > s.y && t < s.y + s.h) return true;
     }
@@ -604,6 +680,54 @@ const interiors = {
             s.fillStyle = '#e8b0a8'; rr(s, 440, 160, 80, 55, 8); s.fill(); rr(s, 440, 222, 80, 55, 8); s.fill();
         },
     },
+    mageHome: {
+        w: 560, h: 420, wall: '#4a4470', floor: '#8880a8', floorAlt: '#7d76a0',
+        solids: [{ x: 50, y: 118, w: 150, h: 60 }, { x: 360, y: 118, w: 150, h: 60 },
+                 { x: 230, y: 226, w: 100, h: 48 }, { x: 70, y: 328, w: 80, h: 44 }],
+        deco(s) {
+            drawWindowIn(s, 250, 26);
+            // Книжные шкафы с разноцветными книгами
+            [[50, 118], [360, 118]].forEach(sh => {
+                s.fillStyle = '#5a4632'; s.fillRect(sh[0], sh[1] - 44, 150, 104);
+                s.strokeStyle = '#3a2c1c'; s.lineWidth = 3; s.strokeRect(sh[0], sh[1] - 44, 150, 104);
+                const bookCols = ['#c25e5e', '#5e8f68', '#5a7fc2', '#c2a05e', '#8a5fa8', '#c27ba0'];
+                for (let shelf = 0; shelf < 2; shelf++) {
+                    for (let b = 0; b < 9; b++) {
+                        s.fillStyle = bookCols[(b + shelf * 2) % bookCols.length];
+                        s.fillRect(sh[0] + 8 + b * 15, sh[1] - 36 + shelf * 50, 11, 36);
+                    }
+                    s.fillStyle = '#3a2c1c'; s.fillRect(sh[0], sh[1] + 2 + shelf * 50, 150, 6);
+                }
+            });
+            // Звёздный ковёр
+            s.fillStyle = '#63549a'; s.beginPath(); s.ellipse(290, 330, 130, 62, 0, 0, 7); s.fill();
+            s.strokeStyle = '#7a6ab8'; s.lineWidth = 3; s.stroke();
+            s.fillStyle = '#ffd166'; s.font = '14px Courier New';
+            s.fillText('✦', 240, 320); s.fillText('✧', 320, 345); s.fillText('✦', 280, 360); s.fillText('✧', 350, 315);
+            // Котёл с зельем
+            s.fillStyle = '#2c2c38'; s.beginPath(); s.ellipse(110, 344, 42, 28, 0, 0, 7); s.fill();
+            s.strokeStyle = '#17171f'; s.lineWidth = 3; s.stroke();
+            s.fillStyle = '#7ac47a'; s.beginPath(); s.ellipse(110, 332, 32, 12, 0, 0, 7); s.fill();
+            s.fillStyle = '#a8e8a8'; s.beginPath(); s.arc(98, 330, 4, 0, 7); s.arc(120, 333, 3, 0, 7); s.fill();
+            // Стол с хрустальным шаром
+            s.fillStyle = '#5a4632'; s.fillRect(230, 226, 100, 48);
+            s.strokeStyle = '#3a2c1c'; s.lineWidth = 3; s.strokeRect(230, 226, 100, 48);
+            s.fillStyle = '#bfe3f5'; s.beginPath(); s.arc(280, 216, 17, 0, 7); s.fill();
+            s.strokeStyle = '#8ab8d8'; s.lineWidth = 2; s.stroke();
+            s.fillStyle = 'rgba(255,255,255,0.75)'; s.beginPath(); s.arc(274, 210, 4, 0, 7); s.fill();
+            // Свечи по бокам стола
+            [[214, 240], [346, 240]].forEach(cd => {
+                s.fillStyle = '#f5f0e0'; s.fillRect(cd[0] - 3, cd[1] - 14, 6, 14);
+                s.fillStyle = '#ffd166'; s.beginPath(); s.arc(cd[0], cd[1] - 18, 3, 0, 7); s.fill();
+            });
+            // Полка с зельями на стене
+            s.fillStyle = '#5a4632'; s.fillRect(210, 62, 140, 8);
+            ['#e04b6a', '#7ac47a', '#6fc3ff', '#ffd166', '#c77dff'].forEach((pc, i) => {
+                s.fillStyle = pc; s.fillRect(220 + i * 26, 42, 10, 20);
+                s.fillStyle = '#8a7a68'; s.fillRect(222 + i * 26, 38, 6, 5);
+            });
+        },
+    },
 };
 for (const key in interiors) {
     const I = interiors[key];
@@ -629,12 +753,252 @@ function enterInterior(key) {
     const I = interiors[key];
     player.x = I.w / 2; player.y = I.h - 48;
     cam.x = (I.w - VIEW_W) / 2; cam.y = (I.h - VIEW_H) / 2;
+    interactLockUntil = now + 500;
+    if (key === 'mageHome') { mage.visible = true; mage.x = 168, mage.y = 300; mage.flip = false; }
 }
 function exitInterior() {
     game.loc = 'city';
+    mage.visible = false;
+    interactLockUntil = now + 500;
     if (game.saved) { player.x = game.saved.x; player.y = game.saved.y; }
     cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
     cam.y = clamp(player.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
+}
+
+// ============================== ПОТАЙНОЙ ЛЕС ==============================
+const FOREST_W = 2200, FOREST_H = 640;
+const BUSHES = [{ x: 405, y: 258 }, { x: 433, y: 470 }];
+const forestSolids = [
+    { x: 393, y: 248, w: 24, h: 14 },
+    { x: 421, y: 460, w: 24, h: 14 },
+    { x: 1240, y: 222, w: 460, h: 26 },  // колючие изгороди коридора
+    { x: 1240, y: 442, w: 460, h: 26 },
+];
+const POOL = { x: 640, y: 222, w: 300, h: 248, cols: 5, rows: 4 };
+const SAFE_PATH = [[0, 2], [1, 2], [1, 1], [2, 1], [2, 0], [3, 0], [3, 1], [3, 2], [4, 2]];
+const SAFE_SET = new Set(SAFE_PATH.map(p => p[0] + ',' + p[1]));
+const GATES = [{ x: 1310 }, { x: 1460 }, { x: 1610 }];
+const GATE_W = 26;
+function gateClosed(i) { return ((now + i * 800) % 2400) < 1300; }
+const EYES = [[180, 140], [430, 110], [720, 80], [1000, 140], [1240, 100], [1490, 130], [1760, 95], [2060, 125],
+              [300, 540], [640, 565], [930, 540], [1180, 560], [1430, 545], [1700, 560], [1980, 550]];
+let t1Progress = -1, dunkImmuneUntil = 0, gatePushImmuneUntil = 0;
+let shakeUntil = 0, bushShakeUntil = 0;
+const splashes = [], popups = [];
+
+function tileCenter(c, r2) { return { x: POOL.x + c * 60 + 30, y: POOL.y + r2 * 62 + 31 }; }
+function addPopup(text, x, y, ms) { popups.push({ text, x, y, until: now + (ms || 1300) }); }
+function addSplash(x, y) {
+    for (let i = 0; i < 10; i++) {
+        splashes.push({ x, y: y - 6, vx: Math.cos(i / 10 * 6.28) * 2.2, vy: Math.sin(i / 10 * 6.28) * 1.6 - 1.4, life: 26 });
+    }
+}
+
+let forestLayer = null;
+function buildForestLayerOnce() {
+    if (forestLayer) return;
+    forestLayer = document.createElement('canvas');
+    forestLayer.width = FOREST_W; forestLayer.height = FOREST_H;
+    const s = forestLayer.getContext('2d');
+    // Тёмная лесная подложка
+    s.fillStyle = '#152218'; s.fillRect(0, 0, FOREST_W, FOREST_H);
+    for (let i = 0; i < 800; i++) {
+        s.fillStyle = Math.random() < 0.5 ? '#122015' : '#18261b';
+        s.fillRect(Math.floor(Math.random() * FOREST_W / 8) * 8, Math.floor(Math.random() * FOREST_H / 8) * 8, 8, 8);
+    }
+    // Тропа
+    s.fillStyle = '#4a3b2c';
+    for (let x = -40; x < FOREST_W + 40; x += 34) {
+        s.beginPath(); s.ellipse(x, 345 + Math.sin(x * 0.01) * 10, 58, 68, 0, 0, 7); s.fill();
+    }
+    s.fillStyle = '#5c4c3a';
+    for (let i = 0; i < 90; i++) s.fillRect(60 + Math.random() * (FOREST_W - 120), 300 + Math.random() * 90, 5, 4);
+    // Стены леса: тёмные силуэты деревьев сверху и снизу
+    s.fillStyle = '#0e1712'; s.fillRect(0, 0, FOREST_W, 218); s.fillRect(0, 470, FOREST_W, FOREST_H - 470);
+    for (let x = 20; x < FOREST_W; x += 70) {
+        const rad = 34 + (x * 7919 % 30);
+        s.fillStyle = '#0b130e';
+        s.beginPath(); s.arc(x, 110 + (x * 131 % 70), rad, 0, 7); s.fill();
+        s.beginPath(); s.arc(x + 30, 545 + (x * 197 % 55), rad - 6, 0, 7); s.fill();
+    }
+    s.fillStyle = '#1c1510';
+    for (let x = 40; x < FOREST_W; x += 120) { s.fillRect(x, 182, 14, 44); s.fillRect(x + 55, 452, 14, 38); }
+    // Грибочки
+    for (let i = 0; i < 26; i++) {
+        const mx = 80 + Math.random() * (FOREST_W - 160);
+        const my = Math.random() < 0.5 ? 238 + Math.random() * 18 : 432 + Math.random() * 24;
+        s.fillStyle = '#c25e5e'; s.beginPath(); s.arc(mx, my, 5, Math.PI, 0); s.fill();
+        s.fillStyle = '#e8d8c0'; s.fillRect(mx - 2, my, 4, 5);
+    }
+    // Болото
+    s.fillStyle = '#2c2a20'; rr(s, POOL.x - 14, POOL.y - 12, POOL.w + 28, POOL.h + 24, 18); s.fill();
+    s.fillStyle = '#16262e'; rr(s, POOL.x - 4, POOL.y - 4, POOL.w + 8, POOL.h + 8, 14); s.fill();
+    // Плитки-камни (все выглядят одинаково — путь знает только ёжик!)
+    for (let c = 0; c < POOL.cols; c++) {
+        for (let r2 = 0; r2 < POOL.rows; r2++) {
+            const t = tileCenter(c, r2);
+            s.fillStyle = '#59684f'; rr(s, t.x - 24, t.y - 20, 48, 40, 10); s.fill();
+            s.strokeStyle = '#3c4a36'; s.lineWidth = 3; s.stroke();
+            s.fillStyle = '#4c5a44'; s.fillRect(t.x - 10, t.y - 8, 8, 5); s.fillRect(t.x + 4, t.y + 2, 9, 5);
+        }
+    }
+    // Колючий коридор
+    s.fillStyle = '#1c2416'; s.fillRect(1240, 218, 460, 34); s.fillRect(1240, 438, 460, 34);
+    s.strokeStyle = '#39492c'; s.lineWidth = 2;
+    for (let x = 1246; x < 1696; x += 12) {
+        s.beginPath(); s.moveTo(x, 250); s.lineTo(x + 6, 226); s.moveTo(x, 440); s.lineTo(x + 6, 466); s.stroke();
+    }
+    GATES.forEach(gt => {
+        s.fillStyle = '#3a2c1c';
+        s.fillRect(gt.x - 5, 224, GATE_W + 10, 22); s.fillRect(gt.x - 5, 442, GATE_W + 10, 22);
+    });
+    // Светлячковая поляна
+    s.fillStyle = '#1d3323'; s.beginPath(); s.ellipse(2010, 345, 190, 135, 0, 0, 7); s.fill();
+    s.fillStyle = '#28422e'; s.beginPath(); s.ellipse(2010, 345, 130, 92, 0, 0, 7); s.fill();
+    s.fillStyle = '#5a4632'; rr(s, 1950, 392, 90, 22, 10); s.fill();
+    s.strokeStyle = '#3a2c1c'; s.lineWidth = 2; s.stroke();
+    // Портал-вход
+    s.fillStyle = 'rgba(122,95,168,0.35)'; s.beginPath(); s.ellipse(46, 345, 40, 92, 0, 0, 7); s.fill();
+    s.strokeStyle = '#9b7fd4'; s.lineWidth = 4; s.beginPath(); s.ellipse(46, 345, 30, 78, 0, 0, 7); s.stroke();
+}
+
+// Виньетка для мрачной атмосферы
+const vignette = document.createElement('canvas');
+vignette.width = VIEW_W; vignette.height = VIEW_H;
+(function () {
+    const vg = vignette.getContext('2d');
+    const grad = vg.createRadialGradient(480, 320, 230, 480, 320, 650);
+    grad.addColorStop(0, 'rgba(6,6,14,0)');
+    grad.addColorStop(1, 'rgba(6,6,14,0.62)');
+    vg.fillStyle = grad; vg.fillRect(0, 0, VIEW_W, VIEW_H);
+})();
+
+// ---- Кат-сцена: топот, испуганный маг и ёжик ----
+function beginForestIntro() {
+    game.mode = 'cutscene';
+    startCutscene([
+        { do: () => { game.focus = player; shakeUntil = now + 2200; } },
+        { say: [{ n: '', t: '* ...ТОП. ТОП. ТОП.' }] },
+        { say: [{ n: 'Котик-маг', t: 'М-мяу?! Ты слышала?! Что-то ОГРОМНОЕ! И оно ТОПАЕТ!' }] },
+        { move: mage, x: 0, y: 0, speed: 6, behindPlayer: true },
+        { do: () => { mage.flip = false; } },
+        { say: [{ n: 'Котик-маг', t: 'Я н-не прячусь! Это тактическая позиция великого мага!' }] },
+        { do: () => { bushShakeUntil = now + 2800; shakeUntil = now + 1400; } },
+        { wait: 1500 },
+        { say: [{ n: '', t: '* Кусты шевелятся... Деревья скрипят... Кто-то приближается...' }] },
+        { wait: 900 },
+        { say: [{ n: '', t: '* Из кустов выходит...' }] },
+        { do: () => { hedgehog.visible = true; hedgehog.x = BUSHES[0].x; hedgehog.y = BUSHES[0].y + 12; } },
+        { move: hedgehog, x: 0, y: 0, speed: 1.5, frontPlayer: true },
+        { do: () => { hedgehog.flip = true; } },
+        { say: [
+            { n: '', t: '* ...маленький ёжик!' },
+            { n: 'Ёжик', t: 'Фррк! *нюх-нюх*' },
+        ] },
+        { do: () => { addPopup('❤', hedgehog.x, hedgehog.y - 40, 2000); } },
+        { say: [
+            { n: '', t: '* Ёжик обнюхал Бубу Щоню и решил: теперь это его любимая киса.' },
+            { n: '', t: '* Ёжик стал питомцем Бубы! 🦔❤' },
+            { n: 'Котик-маг', t: 'Фух! Всего лишь ёжик! Я ни капельки не испугался. Ни капельки. Почти.' },
+            { n: 'Котик-маг', t: 'Так! На этом моя великая миссия проводника завершена. Дальше я не могу!' },
+            { n: 'Котик-маг', t: 'У меня куча ВАЖНЕЙШИХ дел: зелья кипят, носочки не перебраны, и молочко само себя не выпьет!' },
+            { n: 'Котик-маг', t: 'И запомни: местных монстров я НИ КАПЛИ не боюсь! Я бы победил ЛЮБОГО одной левой лапой!' },
+            { n: 'Котик-маг', t: 'Просто... занят. Очень. Я же самый крутой и великий маг!' },
+            { n: 'Котик-маг', t: 'Удачи, Буба! Ёжик, охраняй её как свои иголки! ВЩЬУХ!' },
+        ] },
+        { do: () => { mage.flip = true; } },
+        { move: mage, x: -90, y: 356, speed: 7 },
+        { do: () => { mage.visible = false; } },
+        { say: [{ n: '', t: '* Котик-маг умчался домой со скоростью заклинания.' }] },
+        { do: () => { setQuest('trial1'); game.mode = 'explore'; } },
+    ]);
+}
+
+// ---- Триггеры леса (вызывается из update в режиме explore) ----
+function updateForestTriggers() {
+    if (game.quest === 'forestIntro' && player.x > 360) { beginForestIntro(); return; }
+    // Болото: неверная плитка топит (только пока идёт испытание — потом путь уже разведан)
+    if (game.quest === 'trial1' && player.x > POOL.x && player.x < POOL.x + POOL.w && player.y > POOL.y && player.y < POOL.y + POOL.h) {
+        const c = clamp(Math.floor((player.x - POOL.x) / 60), 0, POOL.cols - 1);
+        const r2 = clamp(Math.floor((player.y - POOL.y) / 62), 0, POOL.rows - 1);
+        const key = c + ',' + r2;
+        if (SAFE_SET.has(key)) {
+            const idx = SAFE_PATH.findIndex(p => p[0] + ',' + p[1] === key);
+            if (idx > t1Progress) t1Progress = idx;
+        } else if (now > dunkImmuneUntil) {
+            addSplash(player.x, player.y);
+            player.x = POOL.x - 52; player.y = tileCenter(0, 2).y;
+            addPopup('Бульк! 💦', player.x, player.y - 54);
+            dunkImmuneUntil = now + 800;
+        }
+    }
+    if (game.quest === 'trial1' && player.x > POOL.x + POOL.w + 26) {
+        setQuest('trial2');
+        showDialogue([{ n: '', t: '* Ёжик гордо фыркает: болото пройдено! Впереди — колючие ворота.' }]);
+        return;
+    }
+    // Колючие ворота выталкивают, только если ЗАКРЫЛИСЬ прямо на игроке
+    for (let i = 0; i < GATES.length; i++) {
+        const gt = GATES[i];
+        if (gateClosed(i) && now > gatePushImmuneUntil && player.x > gt.x - 12 && player.x < gt.x + GATE_W + 12) {
+            player.x = player.x < gt.x + GATE_W / 2 ? gt.x - 34 : gt.x + GATE_W + 34;
+            gatePushImmuneUntil = now + 700;
+            addPopup('Ай! Колючки! 🌵', player.x, player.y - 54);
+        }
+    }
+    if (game.quest === 'trial2' && player.x > GATES[2].x + 70) {
+        setQuest('forestEnd');
+        showDialogue([{ n: '', t: '* Ворота позади! Ёжик восторженно фыркает. Впереди мерцает поляна светлячков.' }]);
+        return;
+    }
+    if (game.quest === 'forestEnd' && player.x > 2020) {
+        game.mode = 'cutscene';
+        startCutscene([
+            { do: () => { game.focus = player; } },
+            { say: [
+                { n: 'Буба Щоня', t: 'Держись, Мекас! Мы уже идём!' },
+                { n: '', t: '* Ёжик решительно фыркает. Впереди — самая тёмная чаща и Королевство злодеяний...' },
+            ] },
+            { do: () => { setQuest('done'); game.mode = 'explore'; openTbc(); } },
+        ]);
+    }
+}
+
+// ---- Питомцы и частицы ----
+function updatePets() {
+    for (let i = splashes.length - 1; i >= 0; i--) {
+        const sp = splashes[i];
+        sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.14; sp.life--;
+        if (sp.life <= 0) splashes.splice(i, 1);
+    }
+    for (let i = popups.length - 1; i >= 0; i--) if (now > popups[i].until) popups.splice(i, 1);
+    if (game.mode !== 'explore') return;
+    // Маг идёт следом до кат-сцены
+    if (game.loc === 'forest' && mage.visible && game.quest === 'forestIntro') {
+        const tx = player.x - 58, ty = player.y + 8;
+        mage.x += (tx - mage.x) * 0.08; mage.y += (ty - mage.y) * 0.08;
+        mage.moving = Math.hypot(tx - mage.x, ty - mage.y) > 5;
+        if (Math.abs(tx - mage.x) > 4) mage.flip = tx < mage.x;
+    }
+    // Ёжик: подсказывает путь на болоте, иначе семенит следом
+    if (hedgehog.visible && (game.loc === 'forest' || game.loc === 'city')) {
+        let tx, ty;
+        if (game.loc === 'forest' && game.quest === 'trial1' && player.x > POOL.x - 150 && player.x < POOL.x + POOL.w + 60) {
+            if (t1Progress >= SAFE_PATH.length - 1) {
+                tx = POOL.x + POOL.w + 54; ty = tileCenter(4, 2).y;
+            } else {
+                const p = SAFE_PATH[t1Progress + 1];
+                const tc = tileCenter(p[0], p[1]);
+                tx = tc.x; ty = tc.y - 4;
+            }
+        } else {
+            tx = player.x + (player.flip ? 56 : -56); ty = player.y + 6;
+        }
+        hedgehog.x += (tx - hedgehog.x) * 0.1;
+        hedgehog.y += (ty - hedgehog.y) * 0.1;
+        hedgehog.moving = Math.hypot(tx - hedgehog.x, ty - hedgehog.y) > 5;
+        if (Math.abs(tx - hedgehog.x) > 4) hedgehog.flip = tx < hedgehog.x;
+    }
 }
 
 // ============================== ДИАЛОГИ ==============================
@@ -656,9 +1020,10 @@ function nextLine() {
     dlgName.style.display = line.n ? 'block' : 'none';
     dlgText.textContent = '';
     dlg.typing = true;
+    const chars = Array.from(line.t); // по кодпоинтам, чтобы не резать эмодзи
     let i = 0;
     dlg.interval = setInterval(() => {
-        if (i < line.t.length) { dlgText.textContent += line.t[i]; i++; }
+        if (i < chars.length) { dlgText.textContent += chars[i]; i++; }
         else { clearInterval(dlg.interval); dlg.interval = null; dlg.typing = false; }
     }, 26);
 }
@@ -691,7 +1056,11 @@ function nextStep() {
     if (s.do) { s.do(); nextStep(); return; }
     if (s.say) { showDialogue(s.say, nextStep); return; }
     if (s.wait) { cs.waitUntil = now + s.wait; return; }
-    if (s.move) { cs.moving = s; s.move.moving = true; return; }
+    if (s.move) {
+        if (s.behindPlayer) { s.x = player.x - 50; s.y = player.y + 10; }
+        if (s.frontPlayer) { s.x = player.x + 56; s.y = player.y + 4; }
+        cs.moving = s; s.move.moving = true; return;
+    }
 }
 function updateCutscene() {
     if (!cs) return;
@@ -815,6 +1184,14 @@ const npcs = [
     { loc: 'hearts', a: kitten2, name: 'Котёнок', lines: [
         '* Тс-с! Мы прячемся! Ты нас не видела! Мяу!',
     ] },
+    { loc: 'forest', a: hedgehog, name: 'Ёжик', r: 34, lines: [
+        '* Фррк! Фррк!',
+        '* Ёжик деловито нюхает воздух. Он знает этот лес как свои иголочки!',
+    ] },
+    { loc: 'city', a: hedgehog, name: 'Ёжик', r: 34, lines: [
+        '* Фррк! *нюх-нюх*',
+        '* Ёжику нравится город. Столько новых запахов и ни одной колючки!',
+    ] },
     { loc: 'city', a: shopkeeper, name: 'Котик-лавочник', lines: [
         '* МЯУ-МЯУ-МЯУ!!! Я ВСЁ ВИДЕЛ!!!',
         '* Я как раз лежал на крыльце на солнышке и наслаждался погодкой, и тут — ВЖУХ! Байкер! Клетка! Похищение!',
@@ -829,19 +1206,30 @@ const npcs = [
 
 function interactables() {
     const list = [];
+    // Потайной лес: только жители леса
+    if (game.loc === 'forest') {
+        for (const n of npcs) {
+            if (n.loc !== 'forest' || !n.a.visible) continue;
+            list.push({ x: n.a.x, y: n.a.y, r: n.r, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+        }
+        return list;
+    }
     // Внутри дома: жители + дверь-выход
     if (game.loc !== 'city') {
         const I = interiors[game.loc];
         for (const n of npcs) {
             if (n.loc !== game.loc || !n.a.visible) continue;
-            list.push({ x: n.a.x, y: n.a.y, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+            list.push({ x: n.a.x, y: n.a.y, r: n.r, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+        }
+        if (game.loc === 'mageHome' && mage.visible) {
+            list.push({ x: mage.x, y: mage.y, act: mageTalk });
         }
         list.push({ x: I.w / 2, y: I.h - 24, act: exitInterior });
         return list;
     }
     for (const n of npcs) {
         if (n.loc !== 'city' || !n.a.visible) continue;
-        list.push({ x: n.a.x, y: n.a.y, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+        list.push({ x: n.a.x, y: n.a.y, r: n.r, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
     }
     for (const b of buildings) {
         const doorX = b.mage ? b.x + 6 : b.x + b.w / 2;
@@ -849,18 +1237,7 @@ function interactables() {
         if (b.enter) {
             list.push({ x: doorX, y: doorY, act: () => enterInterior(b.enter) });
         } else if (b.mage) {
-            list.push({ x: doorX, y: doorY, act: () => {
-                const lines = [
-                    { n: '', t: '* Слышно, как кто-то волшебничает за дверью и помуркивает.' },
-                ];
-                if (game.quest === 'mage') {
-                    lines.push({ n: 'Буба Щоня', t: 'Кажется, котик-маг очень занят волшебством...' });
-                    lines.push({ n: 'Буба Щоня', t: 'Держись, Мекас! Я обязательно спасу тебя и подарок!' });
-                    showDialogue(lines, () => { setQuest('done'); openTbc(); });
-                } else {
-                    showDialogue(lines);
-                }
-            } });
+            list.push({ x: doorX, y: doorY, act: mageDoorAct });
         } else if (b.lines) {
             list.push({ x: doorX, y: doorY, act: () => showDialogue(b.lines.map(t => ({ n: '', t }))) });
         }
@@ -874,10 +1251,10 @@ function interactables() {
     return list;
 }
 function nearestInteractable() {
-    let best = null, bd = 64;
+    let best = null, bd = Infinity;
     for (const it of interactables()) {
         const d = dist(player.x, player.y, it.x, it.y);
-        if (d < bd) { bd = d; best = it; }
+        if (d < (it.r || 64) && d < bd) { bd = d; best = it; }
     }
     return best;
 }
@@ -905,9 +1282,116 @@ function openTbc() {
     overlayOpen = true;
     document.getElementById('tbcScreen').style.display = 'flex';
 }
-function closeTbc() {
+function returnToCity() {
     document.getElementById('tbcScreen').style.display = 'none';
     overlayOpen = false;
+    game.loc = 'city'; game.mode = 'explore';
+    player.x = 1248; player.y = 560; player.flip = false;
+    hedgehog.x = player.x - 60; hedgehog.y = player.y + 6;
+    mage.visible = false;
+    setQuest('done');
+    musicBad.volume = 1;
+    playGood();
+    cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
+    cam.y = clamp(player.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
+}
+
+// ---- Кнопки-подсказки (стук в дверь мага) ----
+let interactLockUntil = 0; // защита от случайного E сразу после входа/выхода
+const promptBox = document.getElementById('promptBox');
+function showPrompt(label, cb) {
+    promptBox.innerHTML = '';
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.textContent = label;
+    b.onclick = cb;
+    promptBox.appendChild(b);
+    promptBox.style.display = 'block';
+    overlayOpen = true;
+}
+function hidePrompt() {
+    promptBox.style.display = 'none';
+    promptBox.innerHTML = '';
+    overlayOpen = false;
+}
+
+let mageDoorStage = 0;
+function mageDoorAct() {
+    if (mageDoorStage >= 3) { enterInterior('mageHome'); return; }
+    if (game.quest !== 'mage') {
+        showDialogue([{ n: '', t: '* Слышно, как кто-то волшебничает за дверью и помуркивает.' }]);
+        return;
+    }
+    showDialogue([{ n: '', t: '* Слышно, как кто-то волшебничает за дверью и помуркивает.' }],
+        () => showPrompt('🚪 Постучать', knock1));
+}
+function knock1() {
+    hidePrompt();
+    mageDoorStage = 1;
+    showDialogue([
+        { n: '', t: '*тук-тук... тук-тук...*' },
+        { n: '', t: '* За дверью резко стало тихо. Подозрительно тихо.' },
+        { n: '', t: '* Кто-то очень старательно делает вид, что его нет дома.' },
+    ], () => showPrompt('🚪🚪 Настойчиво постучать!', knock2));
+}
+function knock2() {
+    hidePrompt();
+    mageDoorStage = 2;
+    showDialogue([
+        { n: '', t: '*ТУК-ТУК-ТУК-ТУК-ТУК!!!*' },
+        { n: 'Голос из-за двери', t: 'МЯУ! КТО СМЕЕТ ПРЕРЫВАТЬ ВЕЛИКОЕ ВОЛШЕБСТВО?!' },
+        { n: 'Голос из-за двери', t: 'У МЕНЯ ТУТ ЗЕЛЬЕ! ОНО МОЖЕТ ВЗОРВ... ...ой. Уже. Ну и ладно.' },
+        { n: 'Котик-маг', t: '*дверь распахивается* ...Ой! Это же вы! ВЕЛИКАЯ БУБА ЩОНЯ!' },
+        { n: 'Котик-маг', t: 'Простите, я думал, это опять налоговая белка. Заходите скорее!' },
+    ], () => { mageDoorStage = 3; setQuest('mageTalk'); enterInterior('mageHome'); });
+}
+
+// ---- Разговор с магом в его доме ----
+function mageTalk() {
+    const nm = 'Котик-маг';
+    if (game.quest === 'done') {
+        showDialogue([
+            { n: nm, t: 'Ты прошла первые испытания леса! Я всё видел в хрустальном шаре! Ну... почти всё. Он немного запотел.' },
+            { n: nm, t: 'Дальше — Королевство злодеяний. Я уже готовлю для тебя особое заклинание. Жди часть 3!' },
+        ]);
+        return;
+    }
+    showDialogue([
+        { n: nm, t: 'Добро пожаловать в мою волшебную обитель! Осторожно, не наступи на пророчество — я его ещё не дочитал.' },
+        { n: nm, t: 'Значит, Котик-байкер увёз Мекаса и подарок в Потайной лес... Плохо дело, мяу.' },
+        { n: nm, t: 'Потайной лес не найти на картах — он ПРЯЧЕТСЯ. Однажды он прятался от меня три недели!' },
+        { n: nm, t: 'Там полно ловушек, колючих зарослей и злых зверей. Очень-очень опасно!' },
+        { n: nm, t: 'Но для великой Бубы Щони я открою тропу! Провожу до входа и покажу дорогу.' },
+        { n: nm, t: 'Дальше, правда, ты сама. У меня, эм... дела. МАГИЧЕСКИЕ. Очень важные. Мяу.' },
+    ], openJourney);
+}
+
+// ---- Отправление в Потайной лес ----
+function openJourney() {
+    overlayOpen = true;
+    document.getElementById('journeyScreen').style.display = 'flex';
+}
+function closeJourney() {
+    document.getElementById('journeyScreen').style.display = 'none';
+    overlayOpen = false;
+}
+function startForest() {
+    document.getElementById('journeyScreen').style.display = 'none';
+    overlayOpen = false;
+    buildForestLayerOnce();
+    game.loc = 'forest';
+    game.mode = 'explore';
+    game.focus = player;
+    setQuest('forestIntro');
+    player.x = 80; player.y = 345; player.flip = false;
+    mage.visible = true; mage.x = 26; mage.y = 356; mage.flip = false;
+    hedgehog.visible = false;
+    t1Progress = -1;
+    splashes.length = 0; popups.length = 0;
+    cam.x = 0; cam.y = 0;
+    musicGood.pause();
+    musicBad.volume = 0.35;
+    musicBad.play().catch(() => {});
 }
 
 // Фото на визитке
@@ -947,10 +1431,18 @@ addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
     keys[k] = true;
-    if (e.repeat || overlayOpen) return;
+    if (e.repeat) return;
+    if (overlayOpen) {
+        // Кнопку-подсказку (стук в дверь) можно нажать и клавишей
+        if ((k === 'e' || k === 'enter' || k === ' ') && promptBox.style.display === 'block') {
+            const b = promptBox.querySelector('button');
+            if (b) b.click();
+        }
+        return;
+    }
     if (k === 'e' || k === ' ' || k === 'enter' || k === 'z') {
         if (dlg.active) { advanceDialogue(); return; }
-        if (game.mode === 'explore') {
+        if (game.mode === 'explore' && now >= interactLockUntil) {
             const it = nearestInteractable();
             if (it) it.act();
         }
@@ -974,10 +1466,10 @@ function update() {
         if (dx && dy) { dx *= 0.707; dy *= 0.707; }
         const sp = 2.6;
         player.moving = !!(dx || dy);
-        const inCity = game.loc === 'city';
-        const I = inCity ? null : interiors[game.loc];
-        const minX = inCity ? 22 : 26, maxX = inCity ? WORLD_W - 22 : I.w - 26;
-        const minY = inCity ? 40 : 126, maxY = inCity ? WORLD_H - 8 : I.h - 16;
+        let minX, maxX, minY, maxY;
+        if (game.loc === 'city') { minX = 22; maxX = WORLD_W - 22; minY = 40; maxY = WORLD_H - 8; }
+        else if (game.loc === 'forest') { minX = 44; maxX = FOREST_W - 30; minY = 226; maxY = 464; }
+        else { const I = interiors[game.loc]; minX = 26; maxX = I.w - 26; minY = 126; maxY = I.h - 16; }
         if (dx) {
             const nx = clamp(player.x + dx * sp, minX, maxX);
             if (!hitSolid(nx, player.y)) player.x = nx;
@@ -989,12 +1481,15 @@ function update() {
         }
 
         // Триггер главной кат-сцены — подход к рыбному рынку
-        if (inCity && game.quest === 'explore' && player.x > 930 && player.x < 1160 && player.y > 420 && player.y < 565) {
+        if (game.loc === 'city' && game.quest === 'explore' && player.x > 930 && player.x < 1160 && player.y > 420 && player.y < 565) {
             beginKidnapScene();
         }
+        if (game.loc === 'forest') updateForestTriggers();
     } else {
         player.moving = false;
     }
+
+    updatePets();
 
     // Клетка закреплена на багажнике мотоцикла
     if (bag.attached && biker.visible) {
@@ -1006,10 +1501,12 @@ function update() {
     dancer.flip = Math.floor(now / 420) % 2 === 0;
 
     // Камера (в интерьере зафиксирована при входе)
-    if (game.loc === 'city') {
+    if (game.loc === 'city' || game.loc === 'forest') {
+        const W = game.loc === 'city' ? WORLD_W : FOREST_W;
+        const H = game.loc === 'city' ? WORLD_H : FOREST_H;
         const f = game.focus || player;
-        const tx = clamp(f.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
-        const ty = clamp(f.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
+        const tx = clamp(f.x - VIEW_W / 2, 0, W - VIEW_W);
+        const ty = clamp(f.y - VIEW_H / 2, 0, Math.max(0, H - VIEW_H));
         cam.x += (tx - cam.x) * 0.1;
         cam.y += (ty - cam.y) * 0.1;
     }
@@ -1324,12 +1821,87 @@ function renderInterior() {
     for (const n of npcs) {
         if (n.loc === game.loc && n.a.visible) ents.push({ y: n.a.y, d: () => drawActor(n.a) });
     }
+    if (game.loc === 'mageHome' && mage.visible) ents.push({ y: mage.y, d: () => drawActor(mage) });
     ents.sort((a, b) => a.y - b.y).forEach(e => e.d());
     drawMarkerAndHint();
 }
 
+function drawBushF(b) {
+    const off = now < bushShakeUntil ? Math.sin(now * 0.05 + b.x) * 4 : 0;
+    const X = sx(b.x) + off, Y = sy(b.y);
+    g.fillStyle = '#243c26';
+    g.beginPath(); g.arc(X - 12, Y - 6, 13, 0, 7); g.arc(X + 10, Y - 8, 15, 0, 7); g.arc(X, Y - 16, 12, 0, 7); g.fill();
+    g.fillStyle = '#2f4f31'; g.beginPath(); g.arc(X - 4, Y - 12, 9, 0, 7); g.fill();
+    g.fillStyle = '#c25e5e'; g.beginPath(); g.arc(X + 8, Y - 4, 3, 0, 7); g.arc(X - 14, Y - 2, 3, 0, 7); g.fill();
+}
+
+function drawGates() {
+    for (let i = 0; i < GATES.length; i++) {
+        const gt = GATES[i], X = sx(gt.x);
+        if (gateClosed(i)) {
+            g.fillStyle = '#2c3a20'; g.fillRect(X, sy(244), GATE_W, 198);
+            g.strokeStyle = '#1a2412'; g.lineWidth = 2;
+            for (let y2 = 252; y2 < 440; y2 += 16) {
+                g.beginPath(); g.moveTo(X + 3, sy(y2)); g.lineTo(X + GATE_W - 3, sy(y2 + 8)); g.stroke();
+            }
+            g.fillStyle = '#4a6b3a';
+            for (let y2 = 254; y2 < 434; y2 += 24) {
+                g.beginPath(); g.moveTo(X - 5, sy(y2)); g.lineTo(X + 6, sy(y2 - 6)); g.lineTo(X + 6, sy(y2 + 6)); g.closePath(); g.fill();
+                g.beginPath(); g.moveTo(X + GATE_W + 5, sy(y2 + 10)); g.lineTo(X + GATE_W - 6, sy(y2 + 4)); g.lineTo(X + GATE_W - 6, sy(y2 + 16)); g.closePath(); g.fill();
+            }
+        } else {
+            g.fillStyle = '#2c3a20';
+            g.fillRect(X, sy(246), GATE_W, 24); g.fillRect(X, sy(418), GATE_W, 24);
+        }
+    }
+}
+
+function renderForest() {
+    g.save();
+    if (now < shakeUntil) g.translate(Math.sin(now * 0.09) * 4, Math.cos(now * 0.11) * 3);
+    g.drawImage(forestLayer, -Math.round(cam.x), -Math.round(cam.y));
+    // Мерцающие глаза в темноте
+    for (let i = 0; i < EYES.length; i++) {
+        const e = EYES[i];
+        const tw = Math.sin(now * 0.002 + i * 1.7);
+        if (tw < -0.55) continue;
+        g.fillStyle = 'rgba(255,209,102,' + (0.3 + 0.4 * Math.abs(tw)).toFixed(2) + ')';
+        g.fillRect(sx(e[0]), sy(e[1]), 4, 4);
+        g.fillRect(sx(e[0]) + 10, sy(e[1]), 4, 4);
+    }
+    drawGates();
+    // Брызги болота
+    g.fillStyle = '#9fd4e8';
+    for (const sp of splashes) g.fillRect(Math.round(sx(sp.x)), Math.round(sy(sp.y)), 4, 4);
+    // Сущности
+    const ents = [{ y: player.y, d: () => drawActor(player) }];
+    if (mage.visible) ents.push({ y: mage.y, d: () => drawActor(mage) });
+    if (hedgehog.visible) ents.push({ y: hedgehog.y, d: () => drawActor(hedgehog) });
+    BUSHES.forEach(b => ents.push({ y: b.y, d: () => drawBushF(b) }));
+    ents.sort((a, b) => a.y - b.y).forEach(e => e.d());
+    // Светлячки на поляне
+    for (let i = 0; i < 12; i++) {
+        const fx = 1880 + (i * 173 % 270), fy = 260 + (i * 97 % 170);
+        const ox = Math.sin(now * 0.001 + i) * 18, oy = Math.cos(now * 0.0013 + i * 2) * 12;
+        g.fillStyle = 'rgba(190,255,140,' + (0.4 + 0.35 * Math.sin(now * 0.004 + i)).toFixed(2) + ')';
+        g.beginPath(); g.arc(sx(fx + ox), sy(fy + oy), 3, 0, 7); g.fill();
+    }
+    // Всплывающие надписи
+    g.font = 'bold 17px Courier New'; g.textAlign = 'center';
+    for (const p of popups) {
+        g.lineWidth = 4; g.strokeStyle = 'rgba(20,16,28,0.8)';
+        g.strokeText(p.text, sx(p.x), sy(p.y));
+        g.fillStyle = '#fff'; g.fillText(p.text, sx(p.x), sy(p.y));
+    }
+    g.textAlign = 'left';
+    drawMarkerAndHint();
+    g.restore();
+    g.drawImage(vignette, 0, 0);
+}
+
 function render() {
     g.clearRect(0, 0, VIEW_W, VIEW_H);
+    if (game.loc === 'forest') { renderForest(); return; }
     if (game.loc !== 'city') { renderInterior(); return; }
     g.drawImage(staticLayer, -Math.round(cam.x), -Math.round(cam.y));
     drawFountainWater();
@@ -1338,7 +1910,7 @@ function render() {
     // Сущности с сортировкой по глубине
     const ents = [];
     ents.push({ y: player.y, d: () => drawActor(player) });
-    for (const n of [barista, sleeper, dancer, yarnKitten, shopkeeper]) {
+    for (const n of [barista, sleeper, dancer, yarnKitten, shopkeeper, hedgehog]) {
         if (n.visible) ents.push({ y: n.y, d: () => drawActor(n) });
     }
     if (mekas.visible) ents.push({ y: mekas.y, d: () => { drawActor(mekas); drawGift(mekas.x + 2, mekas.y - 66); } });
@@ -1376,12 +1948,13 @@ function loop(ts) {
 requestAnimationFrame(loop);
 
 // Быстрый старт для отладки: #test — сразу в город, #scene — сразу кат-сцена похищения,
-// #auto — кат-сцена с автопрокруткой диалогов, #mage — у дома мага
-if (['#test', '#scene', '#auto', '#mage'].includes(location.hash)) {
+// #auto — кат-сцена с автопрокруткой диалогов, #mage — у дома мага, #forest — сразу в лес
+if (['#test', '#scene', '#auto', '#mage', '#forest'].includes(location.hash)) {
     startGame();
     if (location.hash === '#scene' || location.hash === '#auto') { player.x = 1000; player.y = 480; }
     if (location.hash === '#auto') setInterval(() => { if (dlg.active) advanceDialogue(); }, 700);
     if (location.hash === '#mage') { setQuest('mage'); player.x = 1296; player.y = 852; }
+    if (location.hash === '#forest') { mageDoorStage = 3; startForest(); }
 }
 </script>
 </body>
