@@ -289,9 +289,9 @@
 <!-- Продолжение следует -->
 <div id="tbcScreen" class="overlay">
     <h1>ПРОДОЛЖЕНИЕ СЛЕДУЕТ...</h1>
-    <p>Буба Щоня и её храбрый ёжик прошли первые испытания Потайного леса!<br>
-       Впереди — самая тёмная чаща, Королевство злодеяний и квартира 19...<br>
-       Часть 3 уже готовится ❤️</p>
+    <p>Буба Щоня и ёжик победили злого паука и пробрались<br>
+       в самое Королевство злодеяний!<br>
+       Финальная битва за Мекаса и подарок — уже совсем скоро ❤️</p>
     <button class="btn" onclick="returnToCity()">Вернуться в город 🏠</button>
 </div>
 
@@ -460,6 +460,28 @@ const ROWS_MAGE = catRows({
 });
 const PAL_MAGE = { o: '#3a3345', f: '#b8bcc9', i: '#9aa0ad', c: '#c98a98', e: '#7ac47a', m: '#2c2833', T: '#9aa0ad', h: '#7a5fa8', r: '#63549a', y: '#ffd166' };
 
+// Котик-дедушка — седой, с белыми бровями и бородой
+const ROWS_GRANDPA = catRows({
+    6: 'ofwwwwffffffffwwwwfo..',
+    9: '.offffwwwwmwwwwffffo..',
+    10: '.offffwwwwwwwwffffo...',
+});
+const PAL_GRANDPA = { o: '#3a3a38', f: '#a8a8a0', w: '#f0ede4', i: '#8a8078', c: '#c98a98', e: '#5a758a', m: '#2c2c28', T: '#8f8f88' };
+
+// Кот-стражник Королевства злодеяний — шлем и тёмная броня
+const ROWS_GUARD = catRows({
+    0: '......okkkko..........',
+    1: '.....okkkkkko.........',
+    2: '....okkkkkkkko........',
+    3: '.oookkkkkkkkkkooo.....',
+    12: '...ojjjjjjjjjjjjo.....',
+    13: '...ojjjjjjjjjjjjo.TTo.',
+    14: '..ojjjjjjjjjjjjjjoTTo.',
+    15: '..ojjjjjjjjjjjjjjoTTo.',
+    16: '.ojjjjjjjjjjjjjjjjoTo.',
+});
+const PAL_GUARD = { o: '#22242a', f: '#8a8f98', i: '#6b7078', c: '#8f7a84', e: '#d8b25a', m: '#1c1e24', T: '#6b7078', k: '#3a4048', j: '#2c2c35' };
+
 // Ёжик — маленький, колючий, деловитый (13 пикселей)
 const HEDGEHOG = [
     '...oooooo....',
@@ -498,6 +520,12 @@ const kitten1 = makeActor(CAT, PAL_KITTEN_ORANGE, 2, 300, 310);
 const kitten2 = makeActor(ROWS_TUXEDO, PAL_TUXEDO, 2, 352, 332);
 const mage = makeActor(ROWS_MAGE, PAL_MAGE, 3); mage.visible = false;
 const hedgehog = makeActor(HEDGEHOG, PAL_HEDGEHOG, 2.5); hedgehog.visible = false;
+const grandpaSpr = buildSprite(ROWS_GRANDPA, PAL_GRANDPA, 3);
+const guards = [
+    Object.assign(makeActor(ROWS_GUARD, PAL_GUARD, 3, 350, 340), { x1: 330, x2: 660, spd: 1.25 }),
+    Object.assign(makeActor(ROWS_GUARD, PAL_GUARD, 3, 1000, 424), { x1: 700, x2: 1010, spd: 1.05 }),
+    Object.assign(makeActor(ROWS_GUARD, PAL_GUARD, 3, 1100, 308), { x1: 1060, x2: 1390, spd: 1.4 }),
+];
 
 const bag = { x: 0, y: 0, visible: false, attached: false, shakeUntil: 0 };
 const card = { x: 0, y: 0, visible: false, taken: false };
@@ -514,7 +542,12 @@ const QUEST_TEXT = {
     trial1: '🌲 Испытание 1: перейди болото по плиткам! Ёжик чует безопасный путь',
     trial2: '🌲 Испытание 2: проскочи колючие ворота, пока они открыты!',
     forestEnd: '🌲 Задание: дойди до светлячковой поляны ➜',
-    done: '❤ Задание: ждать часть 3! А пока можно гулять с ёжиком',
+    thicket: '🌲 Тёмная чаща: осмотрись! WASD — идти, стрелки ←/→ — оглядываться',
+    gun: '🌽 Кукурузомёт получен! Исследуй чащу дальше (Пробел/клик — стрелять)',
+    spider: '🕷️ Победи паука! A/D — уворачивайся от паутины, Пробел/клик — стреляй!',
+    webway: '🕸️ Иди за светящейся паутинкой к выходу из чащи',
+    stealth: '🏰 Стража! Перебегай из куста в куст, когда никто не смотрит',
+    done: '❤ Задание: ждать ФИНАЛ! А пока можно гулять с ёжиком',
 };
 function setQuest(q) {
     game.quest = q;
@@ -552,6 +585,7 @@ function hitSolid(px, py) {
     const l = px - 13, t = py - 10, r = px + 13, btm = py + 5;
     let list;
     if (game.loc === 'city') list = citySolids;
+    else if (game.loc === 'stealth') list = stealthSolids;
     else if (game.loc === 'forest') {
         list = forestSolids;
         for (let i = 0; i < GATES.length; i++) {
@@ -957,9 +991,11 @@ function updateForestTriggers() {
             { do: () => { game.focus = player; } },
             { say: [
                 { n: 'Буба Щоня', t: 'Держись, Мекас! Мы уже идём!' },
-                { n: '', t: '* Ёжик решительно фыркает. Впереди — самая тёмная чаща и Королевство злодеяний...' },
+                { n: '', t: '* За поляной начинается тёмная-претёмная чаща. Даже светлячки туда не летают...' },
+                { n: 'Ёжик', t: 'Фррк-фррк!! (перевод: «Я туда не пойду! Ёжики не видят в темноте дальше своего носа!»)' },
+                { n: '', t: '* Ёжик остаётся сторожить вход. Буба решительно шагает в чащу...' },
             ] },
-            { do: () => { setQuest('done'); game.mode = 'explore'; openTbc(); } },
+            { do: () => { game.mode = 'explore'; enterFps(); } },
         ]);
     }
 }
@@ -981,7 +1017,7 @@ function updatePets() {
         if (Math.abs(tx - mage.x) > 4) mage.flip = tx < mage.x;
     }
     // Ёжик: подсказывает путь на болоте, иначе семенит следом
-    if (hedgehog.visible && (game.loc === 'forest' || game.loc === 'city')) {
+    if (hedgehog.visible && (game.loc === 'forest' || game.loc === 'city' || game.loc === 'stealth')) {
         let tx, ty;
         if (game.loc === 'forest' && game.quest === 'trial1' && player.x > POOL.x - 150 && player.x < POOL.x + POOL.w + 60) {
             if (t1Progress >= SAFE_PATH.length - 1) {
@@ -999,6 +1035,533 @@ function updatePets() {
         hedgehog.moving = Math.hypot(tx - hedgehog.x, ty - hedgehog.y) > 5;
         if (Math.abs(tx - hedgehog.x) > 4) hedgehog.flip = tx < hedgehog.x;
     }
+}
+
+// ============================== ТЁМНАЯ ЧАЩА (ФПС, рейкастинг) ==============================
+const FPS_MAP = [
+    '11111111111111111111',
+    '1......2..1....2...1',
+    '1.22......1..2.....1',
+    '1....2....1....22..1',
+    '1.2....22.1..2.....1',
+    '1...2.....1....2...1',
+    '1.....2..........2.1',
+    '1.2................1',
+    '1....2.......2..2..1',
+    '1.22....2.1........1',
+    '1....2....1..2.....1',
+    '1.2....2..1....2...1',
+    '1...2.....1.2....2.1',
+    '1......2..1........1',
+    '11111111111111111111',
+];
+const FOV = 1.15, RAYS = 320;
+const zBuffer = new Array(RAYS).fill(99);
+const fps = {
+    x: 1.6, y: 7.5, ang: 0,
+    hp: 5, hasGun: false,
+    stage: 'explore', // explore | boss | won
+    corns: [], webs: [],
+    spider: { x: 16, y: 7.5, hp: 12, maxHp: 12 },
+    grandpa: { x: 9.3, y: 7.5, talked: false },
+    exit: { x: 18.4, y: 7.5 },
+    lastShot: 0, recoilUntil: 0, hurtUntil: 0, bob: 0,
+};
+function fpsCell(x, y) {
+    const row = FPS_MAP[Math.floor(y)];
+    return row ? (row[Math.floor(x)] || '1') : '1';
+}
+function fpsCanStand(x, y) {
+    const r2 = 0.24;
+    return fpsCell(x - r2, y - r2) === '.' && fpsCell(x + r2, y - r2) === '.' &&
+           fpsCell(x - r2, y + r2) === '.' && fpsCell(x + r2, y + r2) === '.';
+}
+
+// Спрайты чащи: паук (2 кадра), паутина, початок, кукурузомёт
+function buildSpiderSprite(phase) {
+    const c = document.createElement('canvas'); c.width = 150; c.height = 100;
+    const s = c.getContext('2d');
+    s.strokeStyle = '#141018'; s.lineWidth = 6; s.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+        const off = (i % 2 === phase) ? 8 : -4;
+        const ly = 38 + i * 12;
+        s.beginPath(); s.moveTo(58, ly); s.lineTo(26, ly - 14 + off); s.lineTo(10, ly + 10 + off); s.stroke();
+        s.beginPath(); s.moveTo(92, ly); s.lineTo(124, ly - 14 - off); s.lineTo(140, ly + 10 - off); s.stroke();
+    }
+    s.fillStyle = '#241c2c';
+    s.beginPath(); s.ellipse(75, 36, 26, 20, 0, 0, 7); s.fill();   // брюшко
+    s.fillStyle = '#1c1620';
+    s.beginPath(); s.ellipse(75, 62, 22, 18, 0, 0, 7); s.fill();   // голова
+    s.strokeStyle = '#3a2c48'; s.lineWidth = 2;
+    s.beginPath(); s.ellipse(75, 36, 26, 20, 0, 0, 7); s.stroke();
+    s.fillStyle = '#ff4444';
+    [[66, 58], [74, 55], [82, 58], [70, 64], [80, 64], [75, 60]].forEach(e => {
+        s.beginPath(); s.arc(e[0], e[1], 3, 0, 7); s.fill();
+    });
+    s.fillStyle = '#e8e4dc';
+    s.beginPath(); s.moveTo(68, 76); s.lineTo(71, 70); s.lineTo(74, 76); s.closePath(); s.fill();
+    s.beginPath(); s.moveTo(76, 76); s.lineTo(79, 70); s.lineTo(82, 76); s.closePath(); s.fill();
+    return c;
+}
+const spiderSpr = [buildSpiderSprite(0), buildSpiderSprite(1)];
+const webSpr = (function () {
+    const c = document.createElement('canvas'); c.width = 44; c.height = 44;
+    const s = c.getContext('2d');
+    s.strokeStyle = 'rgba(235,240,248,0.9)'; s.lineWidth = 2;
+    for (let r2 = 6; r2 <= 20; r2 += 7) { s.beginPath(); s.arc(22, 22, r2, 0, 7); s.stroke(); }
+    for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4;
+        s.beginPath(); s.moveTo(22, 22); s.lineTo(22 + Math.cos(a) * 21, 22 + Math.sin(a) * 21); s.stroke();
+    }
+    return c;
+})();
+const cornSpr = (function () {
+    const c = document.createElement('canvas'); c.width = 16; c.height = 24;
+    const s = c.getContext('2d');
+    s.fillStyle = '#ffd94a'; s.beginPath(); s.ellipse(8, 12, 6, 10, 0, 0, 7); s.fill();
+    s.strokeStyle = '#d9a820'; s.lineWidth = 1;
+    for (let y2 = 5; y2 < 20; y2 += 4) { s.beginPath(); s.moveTo(3, y2); s.lineTo(13, y2); s.stroke(); }
+    s.fillStyle = '#5da85c'; s.beginPath(); s.ellipse(8, 3, 4, 4, 0, 0, 7); s.fill();
+    return c;
+})();
+const GUN_ROWS = [
+    '.....ooo........',
+    '....oyYyo.......',
+    '...oyYyYyo......',
+    '...oYyYyYo......',
+    '...oyYyYyo......',
+    '..goYyYyYog.....',
+    '..ggoyYyogg.....',
+    '...ggoooggg.....',
+    '....ggogg.......',
+    '.....owo........',
+    '.....owwo.......',
+    '......oo........',
+];
+const gunSpr = buildSprite(GUN_ROWS, { o: '#3a2c1c', y: '#f2c31f', Y: '#ffe066', g: '#5da85c', w: '#8a5a3a' }, 3);
+const fpsBg = (function () {
+    const c = document.createElement('canvas'); c.width = VIEW_W; c.height = VIEW_H;
+    const s = c.getContext('2d');
+    const sky = s.createLinearGradient(0, 0, 0, VIEW_H / 2);
+    sky.addColorStop(0, '#05070a'); sky.addColorStop(1, '#0e141a');
+    s.fillStyle = sky; s.fillRect(0, 0, VIEW_W, VIEW_H / 2);
+    const fl = s.createLinearGradient(0, VIEW_H / 2, 0, VIEW_H);
+    fl.addColorStop(0, '#0e0b08'); fl.addColorStop(1, '#221a10');
+    s.fillStyle = fl; s.fillRect(0, VIEW_H / 2, VIEW_W, VIEW_H / 2);
+    return c;
+})();
+
+function enterFps() {
+    game.loc = 'fps'; game.mode = 'explore';
+    fps.x = 1.6; fps.y = 7.5; fps.ang = 0;
+    fps.hp = 5; fps.hasGun = false; fps.stage = 'explore';
+    fps.corns.length = 0; fps.webs.length = 0;
+    fps.spider.hp = fps.spider.maxHp; fps.spider.x = 16; fps.spider.y = 7.5;
+    fps.grandpa.talked = false;
+    hedgehog.visible = false;
+    setQuest('thicket');
+    musicBad.volume = 0.45;
+}
+
+function fpsShoot() {
+    if (!fps.hasGun || now < fps.lastShot + 330) return;
+    fps.lastShot = now; fps.recoilUntil = now + 160;
+    fps.corns.push({ x: fps.x + Math.cos(fps.ang) * 0.3, y: fps.y + Math.sin(fps.ang) * 0.3, vx: Math.cos(fps.ang) * 0.3, vy: Math.sin(fps.ang) * 0.3 });
+}
+function hitSpider(dmg) {
+    if (fps.stage !== 'boss') return;
+    fps.spider.hp -= dmg;
+    if (fps.spider.hp <= 0) {
+        fps.spider.hp = 0; fps.stage = 'won'; fps.webs.length = 0;
+        setQuest('webway');
+        showDialogue([
+            { n: 'Злой паук', t: 'КХШШ... ХВАТИТ! СДАЮСЬ! Убери свою страшную кукурузу!' },
+            { n: 'Злой паук', t: 'Буба Щоня... ты самая ВЕЛИКАЯ, кого я встречал в этом лесу. А я тут всех встречал.' },
+            { n: 'Злой паук', t: 'Так и быть — покажу дорогу к котику-байкеру. Иди за светящейся паутинкой!' },
+            { n: '', t: '* Паук выпустил светящуюся паутинку. Она тянется на восток чащи...' },
+        ]);
+    }
+}
+
+function fpsUpdate() {
+    // Повороты и движение
+    const rot = 0.048, sp = 0.062;
+    if (keys['arrowleft']) fps.ang -= rot;
+    if (keys['arrowright']) fps.ang += rot;
+    let mx = 0, my = 0;
+    const ca = Math.cos(fps.ang), sa = Math.sin(fps.ang);
+    if (keys['w'] || keys['arrowup']) { mx += ca * sp; my += sa * sp; }
+    if (keys['s'] || keys['arrowdown']) { mx -= ca * sp; my -= sa * sp; }
+    if (keys['a']) { mx += sa * sp; my -= ca * sp; }
+    if (keys['d']) { mx -= sa * sp; my += ca * sp; }
+    if (mx || my) fps.bob += 0.19;
+    if (mx && fpsCanStand(fps.x + mx, fps.y)) fps.x += mx;
+    if (my && fpsCanStand(fps.x, fps.y + my)) fps.y += my;
+
+    // Дедушка: автодиалог у прохода
+    const gd = Math.hypot(fps.x - fps.grandpa.x, fps.y - fps.grandpa.y);
+    if (!fps.grandpa.talked && gd < 2.2) {
+        fps.grandpa.talked = true;
+        showDialogue([
+            { n: 'Котик-дедушка', t: 'Кхе-кхе... Киса? Что ты делаешь в столь УЖАСНОМ лесу, внученька?' },
+            { n: 'Буба Щоня', t: 'Злой байкер украл моего Мекаса и подарок! Мне нужно в Королевство злодеяний!' },
+            { n: 'Котик-дедушка', t: 'Ох-ох-ох... Дальше идти НЕЛЬЗЯ! Там очень опасно. Там живёт... ОН.' },
+            { n: 'Буба Щоня', t: 'Мне всё равно нужно. Я должна спасти Мекаса!' },
+            { n: 'Котик-дедушка', t: 'Упрямая... совсем как моя бабушка-кошка. Ладно! Возьми хотя бы ЭТО.' },
+            { n: '', t: '* Буба получила КУКУРУЗОМЁТ-3000! 🌽' },
+            { n: 'Котик-дедушка', t: 'Стреляет початками! Раньше я им попкорн для кинотеатра делал... Теперь вот. Времена.' },
+            { n: 'Котик-дедушка', t: 'Пробел или клик — стрелять. A и D — уворачиваться вбок. Удачи, внученька!' },
+        ], () => { fps.hasGun = true; setQuest('gun'); });
+        return;
+    }
+
+    // Появление паука
+    if (fps.stage === 'explore' && fps.hasGun && fps.x > 12.5) {
+        fps.stage = 'boss';
+        shakeUntil = now + 1500;
+        setQuest('spider');
+        showDialogue([
+            { n: '???', t: '*ветки трещат... что-то огромное спускается сверху*' },
+            { n: 'Злой паук', t: 'КХШШШШ! ЭТО МОЙ ЛЕС!' },
+            { n: 'Злой паук', t: 'Здесь НИКОМУ нельзя находиться! НИ-КО-МУ!' },
+            { n: 'Злой паук', t: 'А тех, кто заходит... я СЪЕДАЮ! Готовься, киса! КХШШШ!' },
+        ]);
+        return;
+    }
+
+    // Бой с пауком
+    if (fps.stage === 'boss') {
+        const spdr = fps.spider;
+        const pd = Math.hypot(fps.x - spdr.x, fps.y - spdr.y);
+        // Паук кружит и держит дистанцию
+        const orbit = Math.sin(now * 0.0011) * 0.035;
+        let tx = spdr.x, ty = spdr.y;
+        if (pd > 4.2) { tx += (fps.x - spdr.x) * 0.012; ty += (fps.y - spdr.y) * 0.012; }
+        else if (pd < 2.2) { tx -= (fps.x - spdr.x) * 0.012; ty -= (fps.y - spdr.y) * 0.012; }
+        tx += -Math.sin(Math.atan2(fps.y - spdr.y, fps.x - spdr.x)) * orbit;
+        ty += Math.cos(Math.atan2(fps.y - spdr.y, fps.x - spdr.x)) * orbit;
+        if (fpsCanStand(tx, spdr.y)) spdr.x = tx;
+        if (fpsCanStand(spdr.x, ty)) spdr.y = ty;
+        // Паутина
+        if (!spdr.nextShot || now > spdr.nextShot) {
+            spdr.nextShot = now + 1250 - Math.min(450, (spdr.maxHp - spdr.hp) * 35);
+            const a = Math.atan2(fps.y - spdr.y, fps.x - spdr.x) + (Math.random() - 0.5) * 0.22;
+            fps.webs.push({ x: spdr.x, y: spdr.y, vx: Math.cos(a) * 0.115, vy: Math.sin(a) * 0.115 });
+        }
+    }
+
+    // Полёт початков
+    for (let i = fps.corns.length - 1; i >= 0; i--) {
+        const c = fps.corns[i];
+        c.x += c.vx; c.y += c.vy;
+        if (fpsCell(c.x, c.y) !== '.') { fps.corns.splice(i, 1); continue; }
+        if (fps.stage === 'boss' && Math.hypot(c.x - fps.spider.x, c.y - fps.spider.y) < 0.75) {
+            fps.corns.splice(i, 1);
+            hitSpider(1);
+        }
+    }
+    // Полёт паутины
+    for (let i = fps.webs.length - 1; i >= 0; i--) {
+        const w = fps.webs[i];
+        w.x += w.vx; w.y += w.vy;
+        if (fpsCell(w.x, w.y) !== '.') { fps.webs.splice(i, 1); continue; }
+        if (Math.hypot(w.x - fps.x, w.y - fps.y) < 0.38) {
+            fps.webs.splice(i, 1);
+            fps.hp--; fps.hurtUntil = now + 450;
+            if (fps.hp <= 0) {
+                fps.hp = 5; fps.webs.length = 0;
+                fps.x = 12.8; fps.y = 7.5; fps.ang = 0;
+                showDialogue([
+                    { n: '', t: '* Паутина опутала Бубу!.. Но ёжик издалека почуял беду, прибежал и перегрыз её!' },
+                    { n: 'Ёжик', t: 'Фррк!! (перевод: «Я в тебя верю! Покажи ему кукурузу!»)' },
+                ]);
+            }
+        }
+    }
+
+    // Выход по светящейся паутинке
+    if (fps.stage === 'won' && Math.hypot(fps.x - fps.exit.x, fps.y - fps.exit.y) < 1.1) {
+        enterStealth();
+    }
+}
+
+function renderFps() {
+    g.drawImage(fpsBg, 0, 0);
+    const colW = VIEW_W / RAYS;
+    for (let i = 0; i < RAYS; i++) {
+        const ra = fps.ang - FOV / 2 + (i / RAYS) * FOV;
+        const rdx = Math.cos(ra), rdy = Math.sin(ra);
+        // DDA
+        let mapX = Math.floor(fps.x), mapY = Math.floor(fps.y);
+        const ddx = Math.abs(1 / (rdx || 1e-9)), ddy = Math.abs(1 / (rdy || 1e-9));
+        let stepX, stepY, sideX, sideY;
+        if (rdx < 0) { stepX = -1; sideX = (fps.x - mapX) * ddx; } else { stepX = 1; sideX = (mapX + 1 - fps.x) * ddx; }
+        if (rdy < 0) { stepY = -1; sideY = (fps.y - mapY) * ddy; } else { stepY = 1; sideY = (mapY + 1 - fps.y) * ddy; }
+        let side = 0, cell = '1';
+        for (let n2 = 0; n2 < 40; n2++) {
+            if (sideX < sideY) { sideX += ddx; mapX += stepX; side = 0; } else { sideY += ddy; mapY += stepY; side = 1; }
+            cell = fpsCell(mapX + 0.5, mapY + 0.5);
+            if (cell !== '.') break;
+        }
+        const rawDist = side === 0 ? sideX - ddx : sideY - ddy;
+        const dist = Math.max(0.05, rawDist * Math.cos(ra - fps.ang));
+        zBuffer[i] = dist;
+        const h = Math.min(VIEW_H * 1.6, VIEW_H / dist);
+        const base = cell === '2' ? [96, 66, 40] : [44, 74, 48];
+        const f = clamp(1 - dist / 9, 0.06, 1) * (side === 1 ? 0.75 : 1);
+        g.fillStyle = 'rgb(' + Math.round(base[0] * f) + ',' + Math.round(base[1] * f) + ',' + Math.round(base[2] * f) + ')';
+        g.fillRect(Math.floor(i * colW), Math.round((VIEW_H - h) / 2), Math.ceil(colW) + 1, Math.round(h));
+    }
+
+    // Билборды: дальние раньше
+    const bills = [];
+    if (game.loc === 'fps') {
+        bills.push({ x: fps.grandpa.x, y: fps.grandpa.y, spr: grandpaSpr, sc: 0.62, v: 0.18 });
+        if (fps.stage === 'boss' || fps.stage === 'won') {
+            bills.push({ x: fps.spider.x, y: fps.spider.y, spr: spiderSpr[Math.floor(now / 260) % 2], sc: 1.15, v: 0.05 });
+        }
+        fps.webs.forEach(w => bills.push({ x: w.x, y: w.y, spr: webSpr, sc: 0.3, v: 0.12 }));
+        fps.corns.forEach(c2 => bills.push({ x: c2.x, y: c2.y, spr: cornSpr, sc: 0.18, v: 0.2 }));
+    }
+    bills.forEach(b => { b.d = Math.hypot(b.x - fps.x, b.y - fps.y); });
+    bills.sort((a, b) => b.d - a.d);
+    for (const b of bills) {
+        const dx = b.x - fps.x, dy = b.y - fps.y;
+        let a = Math.atan2(dy, dx) - fps.ang;
+        while (a > Math.PI) a -= Math.PI * 2;
+        while (a < -Math.PI) a += Math.PI * 2;
+        if (Math.abs(a) > FOV / 2 + 0.7) continue;
+        const corr = b.d * Math.cos(a);
+        if (corr < 0.25) continue;
+        const hh = (VIEW_H / corr) * b.sc;
+        const ww = hh * (b.spr.width / b.spr.height);
+        const cx2 = (0.5 + a / FOV) * VIEW_W;
+        const top = VIEW_H / 2 - hh / 2 + (VIEW_H / corr) * b.v;
+        const strips = 10, sw = b.spr.width / strips;
+        for (let i = 0; i < strips; i++) {
+            const px2 = cx2 - ww / 2 + (ww * i) / strips;
+            const zi = clamp(Math.floor((px2 + ww / strips / 2) / colW), 0, RAYS - 1);
+            if (zBuffer[zi] < corr) continue;
+            g.drawImage(b.spr, i * sw, 0, sw, b.spr.height, px2, top, ww / strips + 1, hh);
+        }
+    }
+
+    // Светящаяся паутинка-указатель к выходу
+    if (fps.stage === 'won') {
+        const dx = fps.exit.x - fps.x, dy = fps.exit.y - fps.y;
+        let a = Math.atan2(dy, dx) - fps.ang;
+        while (a > Math.PI) a -= Math.PI * 2;
+        while (a < -Math.PI) a += Math.PI * 2;
+        if (Math.abs(a) < FOV / 2 + 0.4) {
+            const d = Math.hypot(dx, dy) || 1;
+            const cx2 = (0.5 + a / FOV) * VIEW_W;
+            g.fillStyle = 'rgba(190,255,220,' + (0.5 + 0.4 * Math.sin(now * 0.006)).toFixed(2) + ')';
+            for (let i = 0; i < 5; i++) {
+                g.beginPath(); g.arc(cx2, VIEW_H / 2 - 30 + Math.sin(now * 0.004 + i) * 14, Math.max(2, 9 - d) + i, 0, 7); g.fill();
+            }
+        }
+    }
+
+    // Кукурузомёт
+    if (fps.hasGun) {
+        const bobY = Math.sin(fps.bob) * 9;
+        const rec = now < fps.recoilUntil ? 14 : 0;
+        const gw = gunSpr.width * 4, gh = gunSpr.height * 4;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(gunSpr, VIEW_W / 2 - gw / 2 + 60 + Math.cos(fps.bob) * 6, VIEW_H - gh + 26 + bobY + rec, gw, gh);
+        if (now < fps.recoilUntil) {
+            g.fillStyle = 'rgba(255,230,120,0.85)';
+            g.beginPath(); g.arc(VIEW_W / 2 + 66, VIEW_H - gh + 30, 16 + Math.random() * 6, 0, 7); g.fill();
+        }
+    }
+    // Прицел
+    g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(VIEW_W / 2 - 9, VIEW_H / 2); g.lineTo(VIEW_W / 2 - 3, VIEW_H / 2);
+    g.moveTo(VIEW_W / 2 + 3, VIEW_H / 2); g.lineTo(VIEW_W / 2 + 9, VIEW_H / 2);
+    g.moveTo(VIEW_W / 2, VIEW_H / 2 - 9); g.lineTo(VIEW_W / 2, VIEW_H / 2 - 3);
+    g.moveTo(VIEW_W / 2, VIEW_H / 2 + 3); g.lineTo(VIEW_W / 2, VIEW_H / 2 + 9);
+    g.stroke();
+    // HP-сердечки (слева внизу, чтобы не прятались за заданием)
+    g.font = '26px Courier New';
+    for (let i = 0; i < fps.hp; i++) {
+        g.fillStyle = '#ff5f7a'; g.fillText('❤', 18 + i * 32, VIEW_H - 18);
+    }
+    // Полоска здоровья паука
+    if (fps.stage === 'boss') {
+        g.fillStyle = 'rgba(0,0,0,0.55)'; rr(g, VIEW_W / 2 - 165, 118, 330, 36, 8); g.fill();
+        g.fillStyle = '#fff'; g.font = 'bold 14px Courier New'; g.textAlign = 'center';
+        g.fillText('🕷️ ЗЛОЙ ПАУК', VIEW_W / 2, 133);
+        g.textAlign = 'left';
+        g.fillStyle = '#5a1c24'; g.fillRect(VIEW_W / 2 - 150, 140, 300, 9);
+        g.fillStyle = '#ff4455'; g.fillRect(VIEW_W / 2 - 150, 140, 300 * fps.spider.hp / fps.spider.maxHp, 9);
+    }
+    // Урон — красная вспышка
+    if (now < fps.hurtUntil) {
+        g.fillStyle = 'rgba(255,40,40,0.28)'; g.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
+    g.drawImage(vignette, 0, 0);
+}
+
+// ============================== СТЕЛС: ПОДСТУПЫ К КОРОЛЕВСТВУ ==============================
+const STEALTH_W = 1600, STEALTH_H = 640;
+const stealthSolids = [];
+const STEALTH_BUSHES = [[240, 310], [420, 420], [610, 290], [800, 400], [980, 300], [1160, 415], [1330, 310]];
+let stealthCaughtImmuneUntil = 0;
+let stealthLayer = null;
+function buildStealthLayerOnce() {
+    if (stealthLayer) return;
+    stealthLayer = document.createElement('canvas');
+    stealthLayer.width = STEALTH_W; stealthLayer.height = STEALTH_H;
+    const s = stealthLayer.getContext('2d');
+    s.fillStyle = '#1a1522'; s.fillRect(0, 0, STEALTH_W, STEALTH_H);
+    for (let i = 0; i < 500; i++) {
+        s.fillStyle = Math.random() < 0.5 ? '#171220' : '#1e1826';
+        s.fillRect(Math.floor(Math.random() * STEALTH_W / 8) * 8, Math.floor(Math.random() * STEALTH_H / 8) * 8, 8, 8);
+    }
+    // Мощёная дорога к воротам
+    s.fillStyle = '#3a3242';
+    for (let x = -30; x < STEALTH_W; x += 30) {
+        s.beginPath(); s.ellipse(x, 345, 52, 62, 0, 0, 7); s.fill();
+    }
+    s.strokeStyle = '#2c2634'; s.lineWidth = 2;
+    for (let i = 0; i < 70; i++) {
+        const px2 = Math.random() * STEALTH_W, py2 = 300 + Math.random() * 90;
+        s.strokeRect(px2, py2, 16, 10);
+    }
+    // Тёмные полосы деревьев сверху/снизу
+    s.fillStyle = '#100c16'; s.fillRect(0, 0, STEALTH_W, 218); s.fillRect(0, 470, STEALTH_W, STEALTH_H - 470);
+    for (let x = 20; x < STEALTH_W; x += 80) {
+        s.fillStyle = '#0c0912';
+        s.beginPath(); s.arc(x, 120 + (x * 131 % 60), 40 + (x * 77 % 24), 0, 7); s.fill();
+        s.beginPath(); s.arc(x + 30, 545 + (x * 197 % 50), 36 + (x * 53 % 22), 0, 7); s.fill();
+    }
+    // Стена Королевства злодеяний справа
+    s.fillStyle = '#241c30'; s.fillRect(1480, 120, 120, 420);
+    s.strokeStyle = '#171020'; s.lineWidth = 3;
+    for (let y2 = 130; y2 < 530; y2 += 34) { s.beginPath(); s.moveTo(1480, y2); s.lineTo(1600, y2); s.stroke(); }
+    for (let y2 = 130; y2 < 530; y2 += 34) {
+        for (let x = 1492 + ((y2 / 34) % 2) * 17; x < 1600; x += 34) { s.beginPath(); s.moveTo(x, y2); s.lineTo(x, y2 + 34); s.stroke(); }
+    }
+    // Зубцы и ворота
+    s.fillStyle = '#241c30';
+    for (let x = 1480; x < 1600; x += 30) s.fillRect(x, 96, 20, 26);
+    s.fillStyle = '#0f0a16'; s.beginPath();
+    s.moveTo(1500, 470); s.lineTo(1500, 330); s.arc(1540, 330, 40, Math.PI, 0); s.lineTo(1580, 470); s.closePath(); s.fill();
+    s.strokeStyle = '#3a2c48'; s.lineWidth = 4; s.stroke();
+    // Табличка «КЗ»
+    s.fillStyle = '#3a2c48'; rr(s, 1506, 240, 68, 34, 6); s.fill();
+    s.strokeStyle = '#171020'; s.lineWidth = 2; s.stroke();
+    s.fillStyle = '#c9b8e8'; s.font = 'bold 20px Courier New'; s.fillText('КЗ 😼', 1514, 264);
+    // Факелы у ворот
+    [[1494, 300], [1586, 300]].forEach(t => { s.fillStyle = '#5a4632'; s.fillRect(t[0] - 3, t[1], 6, 26); });
+}
+function drawStealthBush(bx, by) {
+    const X = sx(bx), Y = sy(by);
+    g.fillStyle = '#1e3322';
+    g.beginPath();
+    g.arc(X - 16, Y - 6, 17, 0, 7); g.arc(X + 14, Y - 8, 19, 0, 7); g.arc(X, Y - 20, 16, 0, 7); g.arc(X - 2, Y - 2, 18, 0, 7);
+    g.fill();
+    g.fillStyle = '#2a4530'; g.beginPath(); g.arc(X - 4, Y - 14, 11, 0, 7); g.fill();
+}
+function playerHidden() {
+    return STEALTH_BUSHES.some(b => dist(player.x, player.y, b[0], b[1] - 8) < 42);
+}
+function catchPlayer() {
+    addPopup('ЭЙ! КТО ЗДЕСЬ?! 👁', player.x, player.y - 60, 1600);
+    player.x = 80; player.y = 345;
+    hedgehog.x = player.x - 50; hedgehog.y = player.y + 6;
+    stealthCaughtImmuneUntil = now + 1200;
+}
+function enterStealth() {
+    buildStealthLayerOnce();
+    game.loc = 'stealth'; game.mode = 'explore';
+    player.x = 80; player.y = 345; player.flip = false;
+    hedgehog.visible = true; hedgehog.x = 30; hedgehog.y = 352;
+    cam.x = 0; cam.y = 0;
+    setQuest('stealth');
+    musicBad.volume = 0.35;
+    showDialogue([
+        { n: 'Ёжик', t: 'Фррк-фррк!! (перевод: «Я пробежал в обход! Я очень храбрый, когда светло!»)' },
+        { n: '', t: '* Впереди — стена Королевства злодеяний. У ворот ходит стража...' },
+        { n: 'Буба Щоня', t: 'Тс-с, ёжик. Перебегаем от куста к кусту, когда никто не смотрит!' },
+    ]);
+}
+function updateStealth() {
+    // Патруль стражи
+    for (const gd of guards) {
+        gd.x += gd.spd * (gd.dir = gd.dir || 1);
+        if (gd.x > gd.x2) { gd.x = gd.x2; gd.dir = -1; }
+        if (gd.x < gd.x1) { gd.x = gd.x1; gd.dir = 1; }
+        gd.flip = gd.dir < 0;
+        gd.moving = true;
+    }
+    if (game.mode !== 'explore' || dlg.active || overlayOpen) return;
+    // Поймали?
+    if (now > stealthCaughtImmuneUntil && !playerHidden()) {
+        for (const gd of guards) {
+            const dx = player.x - gd.x, dy = player.y - gd.y;
+            const d = Math.hypot(dx, dy);
+            if (d > 240) continue;
+            const facing = gd.dir < 0 ? Math.PI : 0;
+            let a = Math.atan2(dy, dx) - facing;
+            while (a > Math.PI) a -= Math.PI * 2;
+            while (a < -Math.PI) a += Math.PI * 2;
+            if (Math.abs(a) < 0.52) { catchPlayer(); break; }
+        }
+    }
+    // Дошли до ворот!
+    if (game.quest === 'stealth' && player.x > 1470) {
+        game.mode = 'cutscene';
+        startCutscene([
+            { do: () => { game.focus = player; } },
+            { say: [
+                { n: '', t: '* Буба и ёжик проскользнули мимо стражи прямо к воротам!' },
+                { n: 'Буба Щоня', t: 'Держись, Мекас! Квартира 19 совсем близко!' },
+                { n: '', t: '* Впереди — логово Котика-байкера. Финальная битва уже скоро...' },
+            ] },
+            { do: () => { setQuest('done'); game.mode = 'explore'; openTbc(); } },
+        ]);
+    }
+}
+function renderStealth() {
+    g.drawImage(stealthLayer, -Math.round(cam.x), -Math.round(cam.y));
+    // Конусы зрения стражи
+    for (const gd of guards) {
+        const facing = (gd.dir || 1) < 0 ? Math.PI : 0;
+        const X = sx(gd.x), Y = sy(gd.y);
+        g.fillStyle = 'rgba(255,209,102,0.13)';
+        g.beginPath();
+        g.moveTo(X, Y - 20);
+        g.arc(X, Y - 20, 240, facing - 0.5, facing + 0.5);
+        g.closePath(); g.fill();
+    }
+    // Сущности + кусты по глубине
+    const hidden = playerHidden();
+    const ents = [{ y: player.y, d: () => {
+        if (hidden) g.globalAlpha = 0.55;
+        drawActor(player);
+        g.globalAlpha = 1;
+    } }];
+    if (hedgehog.visible) ents.push({ y: hedgehog.y, d: () => drawActor(hedgehog) });
+    guards.forEach(gd => ents.push({ y: gd.y, d: () => drawActor(gd) }));
+    STEALTH_BUSHES.forEach(b => ents.push({ y: b[1] + 6, d: () => drawStealthBush(b[0], b[1]) }));
+    ents.sort((a, b) => a.y - b.y).forEach(e => e.d());
+    // Подсказка «спрятана»
+    if (hidden) {
+        g.font = 'bold 15px Courier New';
+        g.fillStyle = 'rgba(190,255,190,0.8)';
+        g.fillText('🌿 спрятана', sx(player.x) - 38, sy(player.y) - 66);
+    }
+    // Всплывающие надписи
+    g.font = 'bold 17px Courier New'; g.textAlign = 'center';
+    for (const p of popups) {
+        g.lineWidth = 4; g.strokeStyle = 'rgba(20,16,28,0.8)';
+        g.strokeText(p.text, sx(p.x), sy(p.y));
+        g.fillStyle = '#fff'; g.fillText(p.text, sx(p.x), sy(p.y));
+    }
+    g.textAlign = 'left';
+    g.drawImage(vignette, 0, 0);
 }
 
 // ============================== ДИАЛОГИ ==============================
@@ -1192,6 +1755,10 @@ const npcs = [
         '* Фррк! *нюх-нюх*',
         '* Ёжику нравится город. Столько новых запахов и ни одной колючки!',
     ] },
+    { loc: 'stealth', a: hedgehog, name: 'Ёжик', r: 34, lines: [
+        '* Фррк... (шёпотом)',
+        '* Ёжик крадётся на цыпочках. Точнее, на иголочках.',
+    ] },
     { loc: 'city', a: shopkeeper, name: 'Котик-лавочник', lines: [
         '* МЯУ-МЯУ-МЯУ!!! Я ВСЁ ВИДЕЛ!!!',
         '* Я как раз лежал на крыльце на солнышке и наслаждался погодкой, и тут — ВЖУХ! Байкер! Клетка! Похищение!',
@@ -1206,10 +1773,12 @@ const npcs = [
 
 function interactables() {
     const list = [];
-    // Потайной лес: только жители леса
-    if (game.loc === 'forest') {
+    // ФПС-чаща: взаимодействия обрабатываются внутри fpsUpdate/keydown
+    if (game.loc === 'fps') return list;
+    // Потайной лес и стелс: только местные жители
+    if (game.loc === 'forest' || game.loc === 'stealth') {
         for (const n of npcs) {
-            if (n.loc !== 'forest' || !n.a.visible) continue;
+            if (n.loc !== game.loc || !n.a.visible) continue;
             list.push({ x: n.a.x, y: n.a.y, r: n.r, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
         }
         return list;
@@ -1442,11 +2011,24 @@ addEventListener('keydown', (e) => {
     }
     if (k === 'e' || k === ' ' || k === 'enter' || k === 'z') {
         if (dlg.active) { advanceDialogue(); return; }
+        if (game.loc === 'fps' && game.mode === 'explore') {
+            if (k === ' ') { fpsShoot(); return; }
+            // E рядом с дедушкой — поговорить ещё раз
+            if (k === 'e' && fps.grandpa.talked && Math.hypot(fps.x - fps.grandpa.x, fps.y - fps.grandpa.y) < 2) {
+                showDialogue([
+                    { n: 'Котик-дедушка', t: 'Кхе-кхе... Иди, внученька, иди. И початки не экономь!' },
+                ]);
+            }
+            return;
+        }
         if (game.mode === 'explore' && now >= interactLockUntil) {
             const it = nearestInteractable();
             if (it) it.act();
         }
     }
+});
+cv.addEventListener('mousedown', () => {
+    if (game.loc === 'fps' && game.mode === 'explore' && !dlg.active && !overlayOpen) fpsShoot();
 });
 addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
@@ -1457,7 +2039,9 @@ function update() {
     updateCutscene();
 
     // Движение игрока
-    if (game.mode === 'explore' && !dlg.active && !overlayOpen) {
+    if (game.mode === 'explore' && !dlg.active && !overlayOpen && game.loc === 'fps') {
+        fpsUpdate();
+    } else if (game.mode === 'explore' && !dlg.active && !overlayOpen) {
         let dx = 0, dy = 0;
         if (keys['w'] || keys['arrowup']) dy -= 1;
         if (keys['s'] || keys['arrowdown']) dy += 1;
@@ -1469,6 +2053,7 @@ function update() {
         let minX, maxX, minY, maxY;
         if (game.loc === 'city') { minX = 22; maxX = WORLD_W - 22; minY = 40; maxY = WORLD_H - 8; }
         else if (game.loc === 'forest') { minX = 44; maxX = FOREST_W - 30; minY = 226; maxY = 464; }
+        else if (game.loc === 'stealth') { minX = 40; maxX = STEALTH_W - 26; minY = 226; maxY = 464; }
         else { const I = interiors[game.loc]; minX = 26; maxX = I.w - 26; minY = 126; maxY = I.h - 16; }
         if (dx) {
             const nx = clamp(player.x + dx * sp, minX, maxX);
@@ -1489,6 +2074,7 @@ function update() {
         player.moving = false;
     }
 
+    if (game.loc === 'stealth') updateStealth();
     updatePets();
 
     // Клетка закреплена на багажнике мотоцикла
@@ -1501,9 +2087,9 @@ function update() {
     dancer.flip = Math.floor(now / 420) % 2 === 0;
 
     // Камера (в интерьере зафиксирована при входе)
-    if (game.loc === 'city' || game.loc === 'forest') {
-        const W = game.loc === 'city' ? WORLD_W : FOREST_W;
-        const H = game.loc === 'city' ? WORLD_H : FOREST_H;
+    if (game.loc === 'city' || game.loc === 'forest' || game.loc === 'stealth') {
+        const W = game.loc === 'city' ? WORLD_W : (game.loc === 'forest' ? FOREST_W : STEALTH_W);
+        const H = game.loc === 'city' ? WORLD_H : (game.loc === 'forest' ? FOREST_H : STEALTH_H);
         const f = game.focus || player;
         const tx = clamp(f.x - VIEW_W / 2, 0, W - VIEW_W);
         const ty = clamp(f.y - VIEW_H / 2, 0, Math.max(0, H - VIEW_H));
@@ -1901,6 +2487,8 @@ function renderForest() {
 
 function render() {
     g.clearRect(0, 0, VIEW_W, VIEW_H);
+    if (game.loc === 'fps') { renderFps(); return; }
+    if (game.loc === 'stealth') { renderStealth(); return; }
     if (game.loc === 'forest') { renderForest(); return; }
     if (game.loc !== 'city') { renderInterior(); return; }
     g.drawImage(staticLayer, -Math.round(cam.x), -Math.round(cam.y));
@@ -1949,12 +2537,14 @@ requestAnimationFrame(loop);
 
 // Быстрый старт для отладки: #test — сразу в город, #scene — сразу кат-сцена похищения,
 // #auto — кат-сцена с автопрокруткой диалогов, #mage — у дома мага, #forest — сразу в лес
-if (['#test', '#scene', '#auto', '#mage', '#forest'].includes(location.hash)) {
+if (['#test', '#scene', '#auto', '#mage', '#forest', '#fps', '#stealth'].includes(location.hash)) {
     startGame();
     if (location.hash === '#scene' || location.hash === '#auto') { player.x = 1000; player.y = 480; }
     if (location.hash === '#auto') setInterval(() => { if (dlg.active) advanceDialogue(); }, 700);
     if (location.hash === '#mage') { setQuest('mage'); player.x = 1296; player.y = 852; }
     if (location.hash === '#forest') { mageDoorStage = 3; startForest(); }
+    if (location.hash === '#fps') { mageDoorStage = 3; enterFps(); musicBad.play().catch(() => {}); }
+    if (location.hash === '#stealth') { mageDoorStage = 3; enterStealth(); musicBad.play().catch(() => {}); }
 }
 </script>
 </body>
