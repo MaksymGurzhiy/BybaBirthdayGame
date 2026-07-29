@@ -791,7 +791,10 @@ function enterInterior(key) {
     player.x = I.w / 2; player.y = I.h - 48;
     cam.x = (I.w - VIEW_W) / 2; cam.y = (I.h - VIEW_H) / 2;
     interactLockUntil = now + 500;
-    if (key === 'mageHome') { mage.visible = true; mage.x = 168, mage.y = 300; mage.flip = false; }
+    if (key === 'mageHome') {
+        if (celebration) mage.visible = false; // маг на празднике — дом пуст
+        else { mage.visible = true; mage.x = 168; mage.y = 300; mage.flip = false; }
+    }
 }
 function exitInterior() {
     game.loc = 'city';
