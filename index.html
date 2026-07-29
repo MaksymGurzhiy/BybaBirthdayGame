@@ -73,6 +73,25 @@
         cursor: pointer;
         z-index: 10;
     }
+    #dlgPortrait {
+        display: none;
+        position: absolute;
+        left: 14px;
+        top: 14px;
+        width: 96px;
+        height: 96px;
+        object-fit: cover;
+        border: 3px solid #fff;
+        border-radius: 6px;
+        background: #222;
+    }
+    #dialogueBox.with-portrait #dlgName,
+    #dialogueBox.with-portrait #dlgText {
+        margin-left: 116px;
+    }
+    #dialogueBox.with-portrait {
+        min-height: 132px;
+    }
     #dlgName {
         color: #ffeb3b;
         font-size: 17px;
@@ -231,6 +250,7 @@
     <canvas id="game" width="960" height="640"></canvas>
     <div id="questHud">🐾 Задание: осмотрись в городе котиков</div>
     <div id="dialogueBox">
+        <img id="dlgPortrait" alt="">
         <div id="dlgName"></div>
         <div id="dlgText"></div>
         <div id="dlgCont">▼ E / клик</div>
@@ -2501,6 +2521,44 @@ const dlg = { active: false, lines: [], idx: 0, typing: false, interval: null, o
 const dlgBox = document.getElementById('dialogueBox');
 const dlgName = document.getElementById('dlgName');
 const dlgText = document.getElementById('dlgText');
+const dlgPortrait = document.getElementById('dlgPortrait');
+
+// Портреты персонажей: файлы portraits/<ключ>.jpg или .png (нет файла — портрет не показывается)
+const PORTRAITS = {
+    'Буба Щоня': 'shonya', 'Буба Мекас': 'mekas', 'Мекас (из клетки)': 'mekas',
+    'Котик-байкер': 'biker', 'Кися-бариста': 'barista', 'Котик-лавочник': 'shopkeeper',
+    'Котик-танцор': 'dancer', 'Сонный котик': 'sleeper', 'Котёнок с клубком': 'yarn',
+    'Котик-маг': 'mage', 'Голос из-за двери': 'mage', 'Котик-дедушка': 'grandpa',
+    'Ёжик': 'hedgehog', 'Злой паук': 'spider', 'Кот-рыботорговец': 'fishmonger',
+    'Котик-гурман': 'gourmand', 'Кися-флористка': 'florist', 'Мама-кошка': 'mama',
+    'Хмурый котик': 'mama', 'Котёнок': 'kittens', '???': null, 'Записка на двери': null,
+};
+const portraitCache = {}; // ключ → src (или null, если файла нет)
+function showPortrait(speaker) {
+    const key = PORTRAITS[speaker];
+    const hide = () => { dlgPortrait.style.display = 'none'; dlgBox.classList.remove('with-portrait'); };
+    if (!key) { hide(); return; }
+    if (key in portraitCache) {
+        if (portraitCache[key]) {
+            dlgPortrait.src = portraitCache[key];
+            dlgPortrait.style.display = 'block';
+            dlgBox.classList.add('with-portrait');
+        } else hide();
+        return;
+    }
+    hide(); // пока грузится — без портрета
+    const probe = new Image();
+    let triedPng = false;
+    probe.onload = () => {
+        portraitCache[key] = probe.src;
+        if (dlg.active && PORTRAITS[dlgName.textContent] === key) showPortrait(dlgName.textContent);
+    };
+    probe.onerror = () => {
+        if (!triedPng) { triedPng = true; probe.src = 'portraits/' + key + '.png'; }
+        else portraitCache[key] = null;
+    };
+    probe.src = 'portraits/' + key + '.jpg';
+}
 
 function showDialogue(lines, onDone) {
     dlg.active = true; dlg.lines = lines; dlg.idx = -1; dlg.onDone = onDone || null;
@@ -2513,6 +2571,7 @@ function nextLine() {
     const line = dlg.lines[dlg.idx];
     dlgName.textContent = line.n || '';
     dlgName.style.display = line.n ? 'block' : 'none';
+    showPortrait(line.n || '');
     dlgText.textContent = '';
     playSfx('blip', 0.35);
     dlg.typing = true;
