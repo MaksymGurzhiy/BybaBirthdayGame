@@ -1295,6 +1295,7 @@ function updateThicket() {
     // Початки
     for (let i = thicket.corns.length - 1; i >= 0; i--) {
         const c = thicket.corns[i];
+        if (!c) continue;
         c.x += c.vx; c.y += c.vy; c.life--;
         if (c.life <= 0 || c.y < 210 || c.y > 480) { thicket.corns.splice(i, 1); continue; }
         if (thicket.stage === 'boss' && dist(c.x, c.y, spdr.x, spdr.y) < 52) {
@@ -1305,6 +1306,7 @@ function updateThicket() {
     // Паутина
     for (let i = thicket.webs.length - 1; i >= 0; i--) {
         const w = thicket.webs[i];
+        if (!w) continue;
         w.x += w.vx; w.y += w.vy; w.life--;
         if (w.life <= 0) { thicket.webs.splice(i, 1); continue; }
         if (dist(w.x, w.y, player.x, player.y - 16) < 28) {
@@ -1582,7 +1584,7 @@ const lair = {
     bikerState: 'ride', rideDir: -1, passCount: 0, nextBomb: 0,
     stateUntil: 0, chargeVX: 0, chargeVY: 0, hintShown: false,
     bombs: [], wrenches: [],
-    soul: { x: 250, y: 150 }, p2objs: [], p2Until: 0, p2NextWave: 0, p2Pattern: 0,
+    soul: { x: 250, y: 150 }, p2objs: [], p2Until: 0, p2NextWave: 0, p2Pattern: 0, p2Pending: null, p2Warns: [],
     cageOpen: false, mekasFree: false, giftTaken: false, kissed: false,
     keys: { x: 0, y: 0, visible: false, carried: false },
     waypointUntil: 0, nextWrench: 0,
@@ -1702,6 +1704,7 @@ function startPhase1() {
     lair.stage = 'phase1';
     lair.bikerState = 'ride'; lair.rideDir = -1; lair.passCount = 0;
     lair.nextBomb = now + 1300;
+    lair.rideBaseY = 380; lair.zigFreq = 0.018; lair.zigAmp = 70; lair.zigPhase = 0;
     biker.riding = true; biker.x = 780; biker.y = 300;
     setQuest('phase1');
 }
@@ -1709,6 +1712,7 @@ function startPhase2() {
     lair.stage = 'phase2';
     lair.soul.x = 250; lair.soul.y = 150;
     lair.p2objs.length = 0;
+    lair.p2Pending = null; lair.p2Warns = [];
     lair.p2Until = now + 25000;
     lair.p2NextWave = now + 800;
     lair.p2Pattern = 0;
@@ -1886,18 +1890,23 @@ function updateLair() {
         ]);
         return;
     }
-    // ФАЗА 1: катается из стороны в сторону, бомбит арену; каждый 3-й заезд — бешеный рывок в случайную стену
+    // ФАЗА 1: катается зигзагами, бомбит арену; после нескольких заездов — бешеный рывок в случайную стену
     if (lair.stage === 'phase1') {
         if (lair.bikerState === 'ride') {
-            biker.x += lair.rideDir * 5.4;
-            biker.y += (player.y - biker.y) * 0.03;
+            biker.x += lair.rideDir * 4.2;
+            lair.rideBaseY += (clamp(player.y, 292, 500) - lair.rideBaseY) * 0.015;
+            biker.y = clamp(lair.rideBaseY + Math.sin(biker.x * lair.zigFreq + lair.zigPhase) * lair.zigAmp, 248, 524);
             biker.flip = lair.rideDir < 0;
             biker.moving = true;
             if (biker.x >= 850 || biker.x <= 130) {
                 biker.x = clamp(biker.x, 130, 850);
                 lair.rideDir *= -1;
                 lair.passCount++;
-                if (lair.passCount >= 2) {
+                // Каждый заезд — новый зигзаг
+                lair.zigFreq = 0.012 + Math.random() * 0.02;
+                lair.zigAmp = 40 + Math.random() * 75;
+                lair.zigPhase = Math.random() * 6.28;
+                if (lair.passCount >= 4) {
                     lair.passCount = 0;
                     lair.bikerState = 'rev';
                     lair.stateUntil = now + 650;
@@ -1949,6 +1958,7 @@ function updateLair() {
         }
         for (let i = lair.bombs.length - 1; i >= 0; i--) {
             const b = lair.bombs[i];
+            if (!b) continue;
             if (b.boomUntil) {
                 if (now > b.boomUntil) { lair.bombs.splice(i, 1); continue; }
                 if (dist(b.tx, b.ty, player.x, player.y) < 58) hurtLair(1);
@@ -1972,13 +1982,20 @@ function updateLair() {
             ]);
             return;
         }
+        // Выпускаем волну после предупреждения
+        if (lair.p2Pending && now > lair.p2Pending.at) {
+            for (const o of lair.p2Pending.objs) lair.p2objs.push(o);
+            lair.p2Pending = null;
+            lair.p2Warns.length = 0;
+        }
         if (now > lair.p2NextWave) {
             lair.p2NextWave = now + 3000;
+            const wave = [];
             const p = lair.p2Pattern % 7; lair.p2Pattern++;
             if (p === 0) {
                 for (let i = 0; i < 3; i++) {
                     const fromLeft = Math.random() < 0.5;
-                    lair.p2objs.push({ type: 'tire', x: fromLeft ? -20 - i * 60 : 520 + i * 60, y: 30 + Math.random() * 240, vx: fromLeft ? 2.6 : -2.6, vy: 0, r: 16 });
+                    wave.push({ type: 'tire', x: fromLeft ? -20 - i * 60 : 520 + i * 60, y: 30 + Math.random() * 240, vx: fromLeft ? 2.6 : -2.6, vy: 0, r: 16 });
                 }
             } else if (p === 1) {
                 for (let i = 0; i < 4; i++) {
@@ -1989,33 +2006,40 @@ function updateLair() {
                     else if (edge === 2) { x = -16; y2 = Math.random() * 300; }
                     else { x = 516; y2 = Math.random() * 300; }
                     const a = Math.atan2(lair.soul.y - y2, lair.soul.x - x);
-                    lair.p2objs.push({ type: 'wrench', x, y: y2, vx: Math.cos(a) * 2.2, vy: Math.sin(a) * 2.2, r: 13, rot: 0 });
+                    wave.push({ type: 'wrench', x, y: y2, vx: Math.cos(a) * 2.2, vy: Math.sin(a) * 2.2, r: 13, rot: 0 });
                 }
             } else if (p === 2) {
-                lair.p2objs.push({ type: 'wall', x: 520, gapY: 40 + Math.random() * 180, vx: -2.4 });
+                wave.push({ type: 'wall', x: 520, gapY: 40 + Math.random() * 180, vx: -2.4 });
             } else if (p === 3) {
                 for (let i = 0; i < 5; i++) {
-                    lair.p2objs.push({ type: 'cage', x: 20 + Math.random() * 440, y: -30 - i * 70, vx: 0, vy: 2.6, w: 30, h: 26 });
+                    wave.push({ type: 'cage', x: 20 + Math.random() * 440, y: -30 - i * 70, vx: 0, vy: 2.6, w: 30, h: 26 });
                 }
             } else if (p === 4) {
                 // Веер банок сметаны
                 const cx2 = 100 + Math.random() * 300, cy2 = 70 + Math.random() * 160;
                 for (let i = 0; i < 10; i++) {
                     const a = i / 10 * Math.PI * 2;
-                    lair.p2objs.push({ type: 'jar', x: cx2, y: cy2, vx: Math.cos(a) * 2.0, vy: Math.sin(a) * 2.0, r: 10 });
+                    wave.push({ type: 'jar', x: cx2, y: cy2, vx: Math.cos(a) * 2.0, vy: Math.sin(a) * 2.0, r: 10 });
                 }
             } else if (p === 5) {
                 // Горизонтальная стена выхлопа сверху вниз
-                lair.p2objs.push({ type: 'hwall', y: -30, gapX: 40 + Math.random() * 340, vy: 2.2 });
+                wave.push({ type: 'hwall', y: -30, gapX: 40 + Math.random() * 340, vy: 2.2 });
             } else {
                 // Мины-петарды: мигают, потом взрываются
                 for (let i = 0; i < 3; i++) {
-                    lair.p2objs.push({ type: 'mine', x: 40 + Math.random() * 420, y: 40 + Math.random() * 220, armUntil: now + 1200, boomUntil: 0 });
+                    wave.push({ type: 'mine', x: 40 + Math.random() * 420, y: 40 + Math.random() * 220, armUntil: now + 1950, boomUntil: 0 });
                 }
             }
+            // Предупреждения «!» в местах появления
+            lair.p2Pending = { at: now + 750, objs: wave };
+            lair.p2Warns = wave.map(o => ({
+                x: clamp(o.type === 'wall' ? 488 : (o.type === 'hwall' ? 250 : o.x), 12, 488),
+                y: clamp(o.type === 'wall' ? o.gapY + 46 : (o.type === 'hwall' ? 16 : o.y), 14, 286),
+            }));
         }
         for (let i = lair.p2objs.length - 1; i >= 0; i--) {
             const o = lair.p2objs[i];
+            if (!o) continue;
             o.x += o.vx || 0; o.y += o.vy || 0;
             if (o.rot !== undefined) o.rot += 0.16;
             if (o.type === 'mine') {
@@ -2063,6 +2087,7 @@ function updateLair() {
     // Гаечные ключи (фаза 3)
     for (let i = lair.wrenches.length - 1; i >= 0; i--) {
         const w = lair.wrenches[i];
+        if (!w) continue;
         w.x += w.vx; w.y += w.vy; w.rot += 0.25; w.life--;
         if (w.life <= 0) { lair.wrenches.splice(i, 1); continue; }
         if (dist(w.x, w.y, player.x, player.y - 14) < 26) {
@@ -2073,6 +2098,7 @@ function updateLair() {
     // Початки в логове
     for (let i = thicket.corns.length - 1; i >= 0; i--) {
         const c = thicket.corns[i];
+        if (!c) continue;
         c.x += c.vx; c.y += c.vy; c.life--;
         if (c.life <= 0 || c.x < 40 || c.x > 920 || c.y < 205 || c.y > 570) { thicket.corns.splice(i, 1); continue; }
         if ((lair.stage === 'phase1' || lair.stage === 'phase3') && biker.visible && dist(c.x, c.y, biker.x, biker.y - 20) < 50) {
@@ -2195,6 +2221,16 @@ function renderLair() {
                 }
             }
         }
+        // Предупреждения: откуда прилетит атака
+        g.font = 'bold 26px Courier New'; g.textAlign = 'center';
+        for (const w2 of lair.p2Warns) {
+            const wa = (0.45 + 0.5 * Math.abs(Math.sin(now * 0.02))).toFixed(2);
+            g.lineWidth = 4; g.strokeStyle = 'rgba(30,20,10,' + wa + ')';
+            g.strokeText('!', BX + w2.x, BY + w2.y + 9);
+            g.fillStyle = 'rgba(255,209,102,' + wa + ')';
+            g.fillText('!', BX + w2.x, BY + w2.y + 9);
+        }
+        g.textAlign = 'left';
         // Сердечко-душа
         if (now > lair.invulnUntil || Math.floor(now / 100) % 2 === 0) {
             g.font = '22px Courier New'; g.fillStyle = '#ff3355';
