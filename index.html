@@ -2270,12 +2270,10 @@ function updateLair() {
             lair.p2Warns.length = 0;
         }
         if (now > lair.p2NextWave) {
-            // Вторая половина боя — интенсив: волны чаще и по два паттерна сразу
-            const intense = (lair.p2Until - now) < 22000;
-            lair.p2NextWave = now + (intense ? 2000 : 2400);
+            // Ровная сложность на все 45 секунд: одна волна раз в 2.4с
+            lair.p2NextWave = now + 2400;
             const wave = [];
             spawnP2Pattern(lair.p2Pattern % 7, wave); lair.p2Pattern++;
-            if (intense) { spawnP2Pattern(lair.p2Pattern % 7, wave); lair.p2Pattern++; }
             // Предупреждения «!» в местах появления
             lair.p2Pending = { at: now + 750, objs: wave };
             lair.p2Warns = wave.map(o => ({
