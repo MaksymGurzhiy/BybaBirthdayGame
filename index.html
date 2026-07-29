@@ -1578,8 +1578,9 @@ const lairSolids = [{ x: 700, y: 252, w: 192, h: 116 }];
 const lair = {
     stage: 'off', // intro | phase1 | phase2 | phase3 | beaten
     hp: 5, hurtUntil: 0, invulnUntil: 0,
-    bikerHp: 4, bikerHp3: 6,
-    bikerState: 'aim', stateUntil: 0, chargeVX: 0, chargeVY: 0, hintShown: false,
+    bikerHp: 20, bikerHp3: 6,
+    bikerState: 'ride', rideDir: -1, passCount: 0, nextBomb: 0,
+    stateUntil: 0, chargeVX: 0, chargeVY: 0, hintShown: false,
     bombs: [], wrenches: [],
     soul: { x: 250, y: 150 }, p2objs: [], p2Until: 0, p2NextWave: 0, p2Pattern: 0,
     cageOpen: false, mekasFree: false, giftTaken: false, kissed: false,
@@ -1670,7 +1671,7 @@ function enterLair() {
     player.x = 130; player.y = 420; player.flip = false;
     hedgehog.visible = true; hedgehog.x = 90; hedgehog.y = 430;
     biker.visible = true; biker.riding = false; biker.x = 600; biker.y = 420; biker.flip = true;
-    lair.stage = 'intro'; lair.hp = 5; lair.bikerHp = 4; lair.bikerHp3 = 6;
+    lair.stage = 'intro'; lair.hp = 5; lair.bikerHp = 20; lair.bikerHp3 = 6;
     lair.bombs.length = 0; lair.wrenches.length = 0; thicket.corns.length = 0;
     lair.cageOpen = false; lair.mekasFree = false; lair.giftTaken = false;
     lair.keys.visible = false; lair.keys.carried = false;
@@ -1699,15 +1700,16 @@ function hurtLair(dmg) {
 
 function startPhase1() {
     lair.stage = 'phase1';
-    lair.bikerState = 'aim'; lair.stateUntil = now + 1200;
-    biker.riding = true; biker.x = 650; biker.y = 300;
+    lair.bikerState = 'ride'; lair.rideDir = -1; lair.passCount = 0;
+    lair.nextBomb = now + 1300;
+    biker.riding = true; biker.x = 780; biker.y = 300;
     setQuest('phase1');
 }
 function startPhase2() {
     lair.stage = 'phase2';
     lair.soul.x = 250; lair.soul.y = 150;
     lair.p2objs.length = 0;
-    lair.p2Until = now + 22000;
+    lair.p2Until = now + 25000;
     lair.p2NextWave = now + 800;
     lair.p2Pattern = 0;
     biker.riding = false; biker.x = 480; biker.y = 160; biker.visible = true; biker.flip = false;
@@ -1884,37 +1886,67 @@ function updateLair() {
         ]);
         return;
     }
-    // ФАЗА 1: таран
+    // ФАЗА 1: катается из стороны в сторону, бомбит арену; каждый 3-й заезд — бешеный рывок в случайную стену
     if (lair.stage === 'phase1') {
-        if (lair.bikerState === 'aim') {
-            biker.flip = player.x < biker.x;
-            if (now > lair.stateUntil) {
-                const a = Math.atan2(player.y - biker.y, player.x - biker.x);
-                lair.chargeVX = Math.cos(a) * 8.5; lair.chargeVY = Math.sin(a) * 8.5;
-                lair.bikerState = 'charge';
-                if (Math.random() < 0.6) {
-                    lair.bombs.push({ x: biker.x, y: biker.y - 30, tx: player.x, ty: player.y, t: 0, dur: 55, boomUntil: 0 });
+        if (lair.bikerState === 'ride') {
+            biker.x += lair.rideDir * 5.4;
+            biker.y += (player.y - biker.y) * 0.03;
+            biker.flip = lair.rideDir < 0;
+            biker.moving = true;
+            if (biker.x >= 850 || biker.x <= 130) {
+                biker.x = clamp(biker.x, 130, 850);
+                lair.rideDir *= -1;
+                lair.passCount++;
+                if (lair.passCount >= 2) {
+                    lair.passCount = 0;
+                    lair.bikerState = 'rev';
+                    lair.stateUntil = now + 650;
+                    addPopup('‼️', biker.x, biker.y - 96, 650);
                 }
             }
-        } else if (lair.bikerState === 'charge') {
+        } else if (lair.bikerState === 'rev') {
+            biker.moving = false;
+            biker.flip = player.x < biker.x;
+            if (now > lair.stateUntil) {
+                const side = Math.floor(Math.random() * 4);
+                let tx2, ty2;
+                if (side === 0) { tx2 = 112; ty2 = 260 + Math.random() * 260; }
+                else if (side === 1) { tx2 = 876; ty2 = 260 + Math.random() * 260; }
+                else if (side === 2) { tx2 = 150 + Math.random() * 700; ty2 = 242; }
+                else { tx2 = 150 + Math.random() * 700; ty2 = 528; }
+                const d = Math.hypot(tx2 - biker.x, ty2 - biker.y) || 1;
+                lair.chargeVX = (tx2 - biker.x) / d * 13;
+                lair.chargeVY = (ty2 - biker.y) / d * 13;
+                lair.bikerState = 'superCharge';
+            }
+        } else if (lair.bikerState === 'superCharge') {
             biker.x += lair.chargeVX; biker.y += lair.chargeVY;
             biker.flip = lair.chargeVX < 0;
             biker.moving = true;
-            if (dist(biker.x, biker.y, player.x, player.y) < 54) {
-                hurtLair(1);
-                addPopup('💢', player.x, player.y - 60);
-            }
-            if (biker.x < 130 || biker.x > 850 || biker.y < 250 || biker.y > 520) {
-                biker.x = clamp(biker.x, 130, 850); biker.y = clamp(biker.y, 250, 520);
-                lair.bikerState = 'crashed'; lair.stateUntil = now + 2000;
+            if (biker.x < 116 || biker.x > 872 || biker.y < 246 || biker.y > 526) {
+                biker.x = clamp(biker.x, 116, 872); biker.y = clamp(biker.y, 246, 526);
+                lair.bikerState = 'crashed'; lair.stateUntil = now + 2600;
                 biker.moving = false;
-                shakeUntil = now + 500;
-                addPopup('💫', biker.x, biker.y - 96, 1800);
+                shakeUntil = now + 600;
+                addPopup('💫', biker.x, biker.y - 96, 2400);
             }
         } else if (lair.bikerState === 'crashed') {
-            if (now > lair.stateUntil) { lair.bikerState = 'aim'; lair.stateUntil = now + 1000 + Math.random() * 600; }
+            if (now > lair.stateUntil) { lair.bikerState = 'ride'; }
         }
-        // Петарды
+        // Сбивает Бубу корпусом (кроме оглушения)
+        if (lair.bikerState !== 'crashed' && dist(biker.x, biker.y, player.x, player.y) < 54 && now > lair.invulnUntil) {
+            hurtLair(1);
+            addPopup('💢', player.x, player.y - 60);
+        }
+        // Бомбы по всей арене: летят 2-3 секунды, место падения видно заранее
+        if (lair.bikerState !== 'crashed' && now > lair.nextBomb) {
+            lair.nextBomb = now + 1250 + Math.random() * 500;
+            lair.bombs.push({
+                x: biker.x, y: biker.y - 30,
+                tx: 150 + Math.random() * 700, ty: 270 + Math.random() * 250,
+                t: 0, dur: 130 + Math.floor(Math.random() * 45), boomUntil: 0,
+            });
+        }
         for (let i = lair.bombs.length - 1; i >= 0; i--) {
             const b = lair.bombs[i];
             if (b.boomUntil) {
@@ -1922,7 +1954,7 @@ function updateLair() {
                 if (dist(b.tx, b.ty, player.x, player.y) < 58) hurtLair(1);
             } else {
                 b.t++;
-                if (b.t >= b.dur) b.boomUntil = now + 420;
+                if (b.t >= b.dur) b.boomUntil = now + 450;
             }
         }
     }
@@ -1941,12 +1973,12 @@ function updateLair() {
             return;
         }
         if (now > lair.p2NextWave) {
-            lair.p2NextWave = now + 2600;
-            const p = lair.p2Pattern % 4; lair.p2Pattern++;
+            lair.p2NextWave = now + 3000;
+            const p = lair.p2Pattern % 7; lair.p2Pattern++;
             if (p === 0) {
                 for (let i = 0; i < 3; i++) {
                     const fromLeft = Math.random() < 0.5;
-                    lair.p2objs.push({ type: 'tire', x: fromLeft ? -20 - i * 60 : 520 + i * 60, y: 30 + Math.random() * 240, vx: fromLeft ? 4.2 : -4.2, vy: 0, r: 16 });
+                    lair.p2objs.push({ type: 'tire', x: fromLeft ? -20 - i * 60 : 520 + i * 60, y: 30 + Math.random() * 240, vx: fromLeft ? 2.6 : -2.6, vy: 0, r: 16 });
                 }
             } else if (p === 1) {
                 for (let i = 0; i < 4; i++) {
@@ -1957,23 +1989,41 @@ function updateLair() {
                     else if (edge === 2) { x = -16; y2 = Math.random() * 300; }
                     else { x = 516; y2 = Math.random() * 300; }
                     const a = Math.atan2(lair.soul.y - y2, lair.soul.x - x);
-                    lair.p2objs.push({ type: 'wrench', x, y: y2, vx: Math.cos(a) * 3.4, vy: Math.sin(a) * 3.4, r: 13, rot: 0 });
+                    lair.p2objs.push({ type: 'wrench', x, y: y2, vx: Math.cos(a) * 2.2, vy: Math.sin(a) * 2.2, r: 13, rot: 0 });
                 }
             } else if (p === 2) {
-                lair.p2objs.push({ type: 'wall', x: 520, gapY: 40 + Math.random() * 180, vx: -3.6 });
-            } else {
+                lair.p2objs.push({ type: 'wall', x: 520, gapY: 40 + Math.random() * 180, vx: -2.4 });
+            } else if (p === 3) {
                 for (let i = 0; i < 5; i++) {
-                    lair.p2objs.push({ type: 'cage', x: 20 + Math.random() * 440, y: -30 - i * 70, vx: 0, vy: 3.8, w: 30, h: 26 });
+                    lair.p2objs.push({ type: 'cage', x: 20 + Math.random() * 440, y: -30 - i * 70, vx: 0, vy: 2.6, w: 30, h: 26 });
+                }
+            } else if (p === 4) {
+                // Веер банок сметаны
+                const cx2 = 100 + Math.random() * 300, cy2 = 70 + Math.random() * 160;
+                for (let i = 0; i < 10; i++) {
+                    const a = i / 10 * Math.PI * 2;
+                    lair.p2objs.push({ type: 'jar', x: cx2, y: cy2, vx: Math.cos(a) * 2.0, vy: Math.sin(a) * 2.0, r: 10 });
+                }
+            } else if (p === 5) {
+                // Горизонтальная стена выхлопа сверху вниз
+                lair.p2objs.push({ type: 'hwall', y: -30, gapX: 40 + Math.random() * 340, vy: 2.2 });
+            } else {
+                // Мины-петарды: мигают, потом взрываются
+                for (let i = 0; i < 3; i++) {
+                    lair.p2objs.push({ type: 'mine', x: 40 + Math.random() * 420, y: 40 + Math.random() * 220, armUntil: now + 1200, boomUntil: 0 });
                 }
             }
         }
         for (let i = lair.p2objs.length - 1; i >= 0; i--) {
             const o = lair.p2objs[i];
             o.x += o.vx || 0; o.y += o.vy || 0;
-            if (o.rot !== undefined) o.rot += 0.2;
-            if (o.x < -80 || o.x > 600 || o.y > 380) { lair.p2objs.splice(i, 1); continue; }
+            if (o.rot !== undefined) o.rot += 0.16;
+            if (o.type === 'mine') {
+                if (!o.boomUntil && now > o.armUntil) o.boomUntil = now + 420;
+                if (o.boomUntil && now > o.boomUntil) { lair.p2objs.splice(i, 1); continue; }
+            } else if (o.x < -80 || o.x > 600 || o.y > 380) { lair.p2objs.splice(i, 1); continue; }
             let hit = false;
-            if (o.type === 'tire' || o.type === 'wrench') {
+            if (o.type === 'tire' || o.type === 'wrench' || o.type === 'jar') {
                 hit = dist(o.x, o.y, lair.soul.x, lair.soul.y) < o.r + 9;
             } else if (o.type === 'cage') {
                 hit = lair.soul.x > o.x - 9 && lair.soul.x < o.x + o.w + 9 && lair.soul.y > o.y - 9 && lair.soul.y < o.y + o.h + 9;
@@ -1981,10 +2031,16 @@ function updateLair() {
                 if (lair.soul.x > o.x - 9 && lair.soul.x < o.x + 26 + 9) {
                     hit = lair.soul.y < o.gapY || lair.soul.y > o.gapY + 92;
                 }
+            } else if (o.type === 'hwall') {
+                if (lair.soul.y > o.y - 9 && lair.soul.y < o.y + 26 + 9) {
+                    hit = lair.soul.x < o.gapX || lair.soul.x > o.gapX + 92;
+                }
+            } else if (o.type === 'mine') {
+                hit = !!o.boomUntil && dist(o.x, o.y, lair.soul.x, lair.soul.y) < 46 + 9;
             }
             if (hit && now > lair.invulnUntil) {
                 hurtLair(1);
-                if (o.type !== 'wall') lair.p2objs.splice(i, 1);
+                if (o.type !== 'wall' && o.type !== 'hwall' && o.type !== 'mine') lair.p2objs.splice(i, 1);
             }
         }
     }
@@ -2063,12 +2119,20 @@ function renderLair() {
             g.fillStyle = '#ffd166'; g.beginPath(); g.arc(sx(b.tx), sy(b.ty), 20, 0, 7); g.fill();
         } else {
             const t = b.t / b.dur;
-            const bx = b.x + (b.tx - b.x) * t, by = b.y + (b.ty - b.y) * t - Math.sin(t * Math.PI) * 90;
-            g.fillStyle = '#c25e5e'; g.beginPath(); g.arc(sx(bx), sy(by), 8, 0, 7); g.fill();
-            g.fillStyle = '#ffd166'; g.fillRect(sx(bx) - 1, sy(by) - 13, 2, 6);
-            // Метка падения
-            g.strokeStyle = 'rgba(255,100,80,0.5)'; g.lineWidth = 2;
-            g.beginPath(); g.arc(sx(b.tx), sy(b.ty), 20, 0, 7); g.stroke();
+            const bx = b.x + (b.tx - b.x) * t, by = b.y + (b.ty - b.y) * t - Math.sin(t * Math.PI) * 130;
+            g.fillStyle = '#c25e5e'; g.beginPath(); g.arc(sx(bx), sy(by), 9, 0, 7); g.fill();
+            g.fillStyle = '#ffd166'; g.fillRect(sx(bx) - 1, sy(by) - 14, 2, 6);
+            // Метка падения: растёт и пульсирует по мере приближения бомбы
+            const mr = 16 + 42 * t;
+            g.strokeStyle = 'rgba(255,90,70,' + (0.3 + 0.45 * t + 0.15 * Math.sin(now * 0.02)).toFixed(2) + ')';
+            g.lineWidth = 3;
+            g.beginPath(); g.arc(sx(b.tx), sy(b.ty), mr, 0, 7); g.stroke();
+            g.beginPath(); g.moveTo(sx(b.tx) - 8, sy(b.ty)); g.lineTo(sx(b.tx) + 8, sy(b.ty));
+            g.moveTo(sx(b.tx), sy(b.ty) - 8); g.lineTo(sx(b.tx), sy(b.ty) + 8); g.stroke();
+            if (t > 0.75) {
+                g.fillStyle = 'rgba(255,90,70,' + (0.25 * (t - 0.75) * 4).toFixed(2) + ')';
+                g.beginPath(); g.arc(sx(b.tx), sy(b.ty), 58, 0, 7); g.fill();
+            }
         }
     }
     // Гаечные ключи
@@ -2111,6 +2175,24 @@ function renderLair() {
                 g.fillStyle = '#cfd6dd';
                 g.fillRect(BX + o.x, BY, 26, o.gapY);
                 g.fillRect(BX + o.x, BY + o.gapY + 92, 26, 300 - o.gapY - 92);
+            } else if (o.type === 'hwall') {
+                g.fillStyle = '#cfd6dd';
+                g.fillRect(BX, BY + o.y, o.gapX, 26);
+                g.fillRect(BX + o.gapX + 92, BY + o.y, 500 - o.gapX - 92, 26);
+            } else if (o.type === 'jar') {
+                g.fillStyle = '#f5f2ec'; g.beginPath(); g.arc(BX + o.x, BY + o.y, 9, 0, 7); g.fill();
+                g.fillStyle = '#c25e5e'; g.fillRect(BX + o.x - 6, BY + o.y - 12, 12, 5);
+            } else if (o.type === 'mine') {
+                if (!o.boomUntil) {
+                    g.strokeStyle = 'rgba(255,90,70,' + (0.4 + 0.4 * Math.sin(now * 0.02)).toFixed(2) + ')';
+                    g.lineWidth = 3;
+                    g.beginPath(); g.arc(BX + o.x, BY + o.y, 20, 0, 7); g.stroke();
+                    g.fillStyle = '#c25e5e'; g.beginPath(); g.arc(BX + o.x, BY + o.y, 6, 0, 7); g.fill();
+                } else {
+                    g.fillStyle = 'rgba(255,140,60,' + (0.6 * (o.boomUntil - now) / 420).toFixed(2) + ')';
+                    g.beginPath(); g.arc(BX + o.x, BY + o.y, 46, 0, 7); g.fill();
+                    g.fillStyle = '#ffd166'; g.beginPath(); g.arc(BX + o.x, BY + o.y, 16, 0, 7); g.fill();
+                }
             }
         }
         // Сердечко-душа
@@ -2137,7 +2219,7 @@ function renderLair() {
         g.drawImage(gunSpr, 14, VIEW_H - 66, gunSpr.width, gunSpr.height);
         g.font = '24px Courier New';
         for (let i = 0; i < lair.hp; i++) { g.fillStyle = '#ff5f7a'; g.fillText('❤', 66 + i * 30, VIEW_H - 24); }
-        const bhp = lair.stage === 'phase1' ? lair.bikerHp / 4 : (lair.stage === 'phase3' ? lair.bikerHp3 / 6 : null);
+        const bhp = lair.stage === 'phase1' ? lair.bikerHp / 20 : (lair.stage === 'phase3' ? lair.bikerHp3 / 6 : null);
         if (bhp !== null) {
             g.fillStyle = 'rgba(0,0,0,0.55)'; rr(g, VIEW_W / 2 - 165, 118, 330, 36, 8); g.fill();
             g.fillStyle = '#fff'; g.font = 'bold 14px Courier New'; g.textAlign = 'center';
@@ -2628,6 +2710,15 @@ addEventListener('keydown', (e) => {
         else if (overlayOpen) return;
         mageDoorStage = 3;
         enterThicket();
+        musicBad.play().catch(() => {});
+        return;
+    }
+    if (k === 'p' && !dlg.active && !cs && game.loc !== 'lair') {
+        if (game.mode === 'title') startGame();
+        else if (overlayOpen) return;
+        mageDoorStage = 3;
+        thicket.hasGun = true;
+        enterLair();
         musicBad.play().catch(() => {});
         return;
     }
