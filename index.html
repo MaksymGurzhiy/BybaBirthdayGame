@@ -562,6 +562,33 @@ function playGood() { musicBad.pause(); musicBad.currentTime = 0; musicGood.play
 function playBad() { musicGood.pause(); musicGood.currentTime = 0; musicBad.play().catch(() => {}); }
 function stopMusic() { musicGood.pause(); musicBad.pause(); }
 
+// ============================== ЗВУКОВЫЕ ЭФФЕКТЫ ==============================
+// Файлы кладутся в папку sounds/ с именами sfx_<имя>.mp3 (или .wav).
+// Если файла нет — звук просто не играет, игра работает как обычно.
+const SFX_NAMES = ['click', 'blip', 'meow', 'hedgehog', 'kiss', 'knock', 'door', 'corn', 'hit', 'hurt',
+                   'boom', 'moto', 'crash', 'splash', 'alarm', 'win', 'firework', 'magic', 'spider', 'heart'];
+const sfx = {};
+SFX_NAMES.forEach(n => {
+    const a = new Audio();
+    const entry = { el: a, ok: true, triedWav: false };
+    a.onerror = () => {
+        if (!entry.triedWav) { entry.triedWav = true; a.src = 'sounds/sfx_' + n + '.wav'; }
+        else entry.ok = false;
+    };
+    a.preload = 'auto';
+    a.src = 'sounds/sfx_' + n + '.mp3';
+    sfx[n] = entry;
+});
+function playSfx(n, vol) {
+    const e = sfx[n];
+    if (!e || !e.ok) return;
+    try {
+        const c = e.el.cloneNode();
+        c.volume = vol === undefined ? 0.6 : vol;
+        c.play().catch(() => {});
+    } catch (err) { /* звук недоступен — тихо пропускаем */ }
+}
+
 // ============================== МИР: ЗДАНИЯ И ПРЕПЯТСТВИЯ ==============================
 const buildings = [
     { x: 128, y: 224, w: 192, h: 192, wall: '#e8b07a', roof: '#c25e5e', name: 'МУР-КОФЕЙНЯ ☕', lines: ['* Закрыто! Табличка: «Ушли готовить ОЧЕНЬ большой торт. Мур!»'] },
@@ -791,6 +818,7 @@ function enterInterior(key) {
     player.x = I.w / 2; player.y = I.h - 48;
     cam.x = (I.w - VIEW_W) / 2; cam.y = (I.h - VIEW_H) / 2;
     interactLockUntil = now + 500;
+    playSfx('door', 0.5);
     if (key === 'mageHome') {
         if (celebration) mage.visible = false; // маг на празднике — дом пуст
         else { mage.visible = true; mage.x = 168; mage.y = 300; mage.flip = false; }
@@ -801,6 +829,7 @@ function exitInterior() {
     if (celebration) { mage.visible = true; mage.x = 878; mage.y = 645; }
     else mage.visible = false;
     interactLockUntil = now + 500;
+    playSfx('door', 0.5);
     if (game.saved) { player.x = game.saved.x; player.y = game.saved.y; }
     cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
     cam.y = clamp(player.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
@@ -835,6 +864,7 @@ function addSplash(x, y) {
     }
 }
 function petHedgehog() {
+    playSfx('heart', 0.5);
     addPopup('❤', hedgehog.x, hedgehog.y - 34, 1500);
 }
 
@@ -971,6 +1001,7 @@ function updateForestTriggers() {
             if (idx > t1Progress) t1Progress = idx;
         } else if (now > dunkImmuneUntil) {
             addSplash(player.x, player.y);
+            playSfx('splash', 0.55);
             player.x = POOL.x - 52; player.y = tileCenter(0, 2).y;
             addPopup('Бульк! 💦', player.x, player.y - 54);
             dunkImmuneUntil = now + 800;
@@ -1226,6 +1257,7 @@ function enterThicket() {
 }
 
 function grandpaTalk() {
+    playSfx('meow', 0.5);
     if (thicket.grandpaTalked) {
         showDialogue([{ n: 'Котик-дедушка', t: 'Кхе-кхе... Иди, внученька, иди. И початки не экономь!' }]);
         return;
@@ -1253,6 +1285,7 @@ function throwBomb(angle) {
 function thicketShoot(angle) {
     if (!thicket.hasGun || now < thicket.lastShot + 300) return;
     thicket.lastShot = now;
+    playSfx('corn', 0.5);
     thicket.corns.push({
         x: player.x + Math.cos(angle) * 26, y: player.y - 18 + Math.sin(angle) * 26,
         vx: Math.cos(angle) * 7.5, vy: Math.sin(angle) * 7.5, life: 90,
@@ -1262,8 +1295,10 @@ function hitSpider(dmg) {
     if (thicket.stage !== 'boss') return;
     thicket.spider.hp -= dmg;
     thicket.spider.flashUntil = now + 140;
+    playSfx('hit', 0.5);
     if (thicket.spider.hp <= 0) {
         thicket.spider.hp = 0; thicket.stage = 'won'; thicket.webs.length = 0;
+        playSfx('win');
         setQuest('webway');
         showDialogue([
             { n: 'Злой паук', t: 'КХШШ... ХВАТИТ! СДАЮСЬ! Убери свою страшную кукурузу!' },
@@ -1287,6 +1322,7 @@ function updateThicket() {
     if (thicket.stage === 'explore' && thicket.hasGun && player.x > 1150) {
         thicket.stage = 'boss';
         shakeUntil = now + 1600;
+        playSfx('spider');
         setQuest('spider');
         showDialogue([
             { n: '???', t: '*ветки трещат... что-то огромное спускается сверху*' },
@@ -1334,6 +1370,7 @@ function updateThicket() {
         if (dist(w.x, w.y, player.x, player.y - 16) < 28) {
             thicket.webs.splice(i, 1);
             thicket.hp--; thicket.hurtUntil = now + 450;
+            playSfx('hurt', 0.5);
             addPopup('Паутина! 🕸️', player.x, player.y - 60);
             if (thicket.hp <= 0) {
                 thicket.hp = 5; thicket.webs.length = 0;
@@ -1501,6 +1538,7 @@ function playerHidden() {
     return STEALTH_BUSHES.some(b => dist(player.x, player.y, b[0], b[1] - 8) < 42);
 }
 function catchPlayer() {
+    playSfx('alarm', 0.55);
     addPopup('ЭЙ! КТО ЗДЕСЬ?! 👁', player.x, player.y - 60, 1600);
     player.x = 80; player.y = 345;
     hedgehog.x = player.x - 50; hedgehog.y = player.y + 6;
@@ -1713,6 +1751,7 @@ function hurtLair(dmg) {
     lair.hp -= dmg;
     lair.hurtUntil = now + 450;
     lair.invulnUntil = now + 900;
+    playSfx('hurt', 0.5);
     if (lair.hp <= 0) {
         lair.hp = 5;
         thicket.corns.length = 0; lair.bombs.length = 0; lair.wrenches.length = 0; lair.p2objs.length = 0;
@@ -1756,6 +1795,7 @@ function startPhase3() {
     setQuest('phase3');
 }
 function hitBiker(dmg) {
+    playSfx('hit', 0.5);
     if (lair.stage === 'phase1') {
         if (lair.bikerState !== 'crashed') {
             if (!lair.hintShown) { lair.hintShown = true; addPopup('Бронирован! Жди удара в стену!', biker.x, biker.y - 90, 1800); }
@@ -1784,6 +1824,7 @@ function hitBiker(dmg) {
 
 function beatenCutscene() {
     lair.stage = 'beaten';
+    playSfx('win');
     lair.wrenches.length = 0; thicket.corns.length = 0;
     game.mode = 'cutscene';
     startCutscene([
@@ -1851,6 +1892,7 @@ function takeGift() {
     ]);
 }
 function kissMekas() {
+    playSfx('kiss');
     mekas.x = player.x + (player.flip ? -40 : 40);
     mekas.y = player.y;
     mekas.flip = !player.flip;
@@ -1875,6 +1917,7 @@ function exitLair() {
 
 function startCelebration() {
     celebration = true;
+    playSfx('win');
     game.loc = 'city'; game.mode = 'explore';
     player.x = 768; player.y = 620; player.flip = false;
     mekas.visible = true; mekas.x = 810, mekas.y = 626;
@@ -2013,6 +2056,7 @@ function updateLair() {
                 lair.chargeVX = (tx2 - biker.x) / d * 13;
                 lair.chargeVY = (ty2 - biker.y) / d * 13;
                 lair.bikerState = 'superCharge';
+                playSfx('moto', 0.55);
             }
         } else if (lair.bikerState === 'superCharge') {
             biker.x += lair.chargeVX; biker.y += lair.chargeVY;
@@ -2023,6 +2067,7 @@ function updateLair() {
                 lair.bikerState = 'crashed'; lair.stateUntil = now + 2600;
                 biker.moving = false;
                 shakeUntil = now + 600;
+                playSfx('crash');
                 addPopup('💫', biker.x, biker.y - 96, 2400);
             }
         } else if (lair.bikerState === 'crashed') {
@@ -2050,7 +2095,7 @@ function updateLair() {
                 if (dist(b.tx, b.ty, player.x, player.y) < 58) hurtLair(1);
             } else {
                 b.t++;
-                if (b.t >= b.dur) b.boomUntil = now + 450;
+                if (b.t >= b.dur) { b.boomUntil = now + 450; playSfx('boom', 0.45); }
             }
         }
     }
@@ -2097,7 +2142,7 @@ function updateLair() {
             o.x += o.vx || 0; o.y += o.vy || 0;
             if (o.rot !== undefined) o.rot += 0.16;
             if (o.type === 'mine') {
-                if (!o.boomUntil && now > o.armUntil) o.boomUntil = now + 420;
+                if (!o.boomUntil && now > o.armUntil) { o.boomUntil = now + 420; playSfx('boom', 0.35); }
                 if (o.boomUntil && now > o.boomUntil) { lair.p2objs.splice(i, 1); continue; }
             } else if (o.x < -80 || o.x > 600 || o.y > 380) { lair.p2objs.splice(i, 1); continue; }
             let hit = false;
@@ -2198,11 +2243,13 @@ function updateLair() {
                 if (pk.kind === 'heart') {
                     if (lair.hp < 5) {
                         lair.hp++;
+                        playSfx('heart', 0.5);
                         addPopup('💗 +1', player.x, player.y - 60);
                         lair.pickups.splice(i, 1);
                     }
                 } else if (!lair.carryBomb) {
                     lair.carryBomb = true;
+                    playSfx('click', 0.5);
                     addPopup('💣 Кинь её в байкера!', player.x, player.y - 60, 1600);
                     lair.pickups.splice(i, 1);
                 }
@@ -2220,6 +2267,7 @@ function updateLair() {
             if (biker.visible && dist(tb.x, tb.y, biker.x, biker.y - 20) < 55) {
                 lair.thrownBombs.splice(i, 1);
                 shakeUntil = now + 400;
+                playSfx('boom');
                 addPopup('💥 -5!!!', biker.x, biker.y - 96, 1400);
                 hitBiker(5);
             }
@@ -2466,6 +2514,7 @@ function nextLine() {
     dlgName.textContent = line.n || '';
     dlgName.style.display = line.n ? 'block' : 'none';
     dlgText.textContent = '';
+    playSfx('blip', 0.35);
     dlg.typing = true;
     const chars = Array.from(line.t); // по кодпоинтам, чтобы не резать эмодзи
     let i = 0;
@@ -2543,7 +2592,7 @@ function beginKidnapScene() {
             { n: 'Буба Мекас', t: 'БУБА!!! С ДНЁМ РОЖДЕНИЯ!!!' },
             { n: 'Буба Мекас', t: 'Я ПРИГОТОВИЛ ДЛЯ ТЕБЯ ПОДАРОК..' },
         ] },
-        { do: () => { playBad(); biker.x = cam.x - 100; biker.y = ry + 4; biker.visible = true; game.focus = biker; } },
+        { do: () => { playBad(); playSfx('moto'); biker.x = cam.x - 100; biker.y = ry + 4; biker.visible = true; game.focus = biker; } },
         { move: biker, x: player.x - 270, y: ry + 4, speed: 11 },
         { say: [{ n: '???', t: '*ВЖЖЖУХ!!! ...визг тормозов...*' }] },
         { wait: 300 },
@@ -2706,7 +2755,7 @@ function interactables() {
     if (game.loc === 'forest' || game.loc === 'stealth') {
         for (const n of npcs) {
             if (n.loc !== game.loc || !n.a.visible) continue;
-            list.push({ x: n.a.x, y: n.a.y, r: n.r, prio: n.prio, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+            list.push({ x: n.a.x, y: n.a.y, r: n.r, prio: n.prio, act: () => { playSfx(n.a === hedgehog ? 'hedgehog' : 'meow', 0.5); showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone); } });
         }
         return list;
     }
@@ -2715,7 +2764,7 @@ function interactables() {
         const I = interiors[game.loc];
         for (const n of npcs) {
             if (celebration || n.loc !== game.loc || !n.a.visible) continue;
-            list.push({ x: n.a.x, y: n.a.y, r: n.r, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+            list.push({ x: n.a.x, y: n.a.y, r: n.r, act: () => { playSfx('meow', 0.5); showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone); } });
         }
         if (game.loc === 'mageHome' && mage.visible) {
             list.push({ x: mage.x, y: mage.y, act: mageTalk });
@@ -2726,7 +2775,7 @@ function interactables() {
     for (const n of npcs) {
         if (n.loc !== 'city' || !n.a.visible) continue;
         const useLines = (celebration && n.festive) ? n.festive : n.lines;
-        list.push({ x: n.a.x, y: n.a.y, r: n.r, prio: n.prio, act: () => showDialogue(useLines.map(t => ({ n: n.name, t })), n.onDone) });
+        list.push({ x: n.a.x, y: n.a.y, r: n.r, prio: n.prio, act: () => { playSfx(n.a === hedgehog ? 'hedgehog' : 'meow', 0.5); showDialogue(useLines.map(t => ({ n: n.name, t })), n.onDone); } });
     }
     if (celebration && lair.mekasFree && mekas.visible) {
         list.push({ x: mekas.x, y: mekas.y, act: kissMekas });
@@ -2763,7 +2812,7 @@ function interactables() {
             ]],
         ];
         for (const [ga, gname, glines] of guests) {
-            list.push({ x: ga.x, y: ga.y, act: () => showDialogue(glines.map(t => ({ n: gname, t }))) });
+            list.push({ x: ga.x, y: ga.y, act: () => { playSfx('meow', 0.5); showDialogue(glines.map(t => ({ n: gname, t }))); } });
         }
     }
     if (celebration && grandpa.visible) {
@@ -2811,6 +2860,7 @@ function startGame() {
     document.getElementById('titleScreen').style.display = 'none';
     overlayOpen = false;
     game.mode = 'explore';
+    playSfx('click');
     playGood();
 }
 function openCard() {
@@ -2840,7 +2890,7 @@ function showPrompt(label, cb) {
     const b = document.createElement('button');
     b.className = 'btn';
     b.textContent = label;
-    b.onclick = cb;
+    b.onclick = () => { playSfx('click'); cb(); };
     promptBox.appendChild(b);
     promptBox.style.display = 'block';
     overlayOpen = true;
@@ -2863,6 +2913,7 @@ function mageDoorAct() {
 }
 function knock1() {
     hidePrompt();
+    playSfx('knock');
     mageDoorStage = 1;
     showDialogue([
         { n: '', t: '*тук-тук... тук-тук...*' },
@@ -2872,6 +2923,7 @@ function knock1() {
 }
 function knock2() {
     hidePrompt();
+    playSfx('knock');
     mageDoorStage = 2;
     showDialogue([
         { n: '', t: '*ТУК-ТУК-ТУК-ТУК-ТУК!!!*' },
@@ -2914,6 +2966,7 @@ function closeJourney() {
 function startForest() {
     document.getElementById('journeyScreen').style.display = 'none';
     overlayOpen = false;
+    playSfx('magic');
     buildForestLayerOnce();
     game.loc = 'forest';
     game.mode = 'explore';
@@ -3097,6 +3150,7 @@ function update() {
                 col: cols[Math.floor(Math.random() * cols.length)],
                 big: Math.random() < 0.35,
             });
+            if (Math.random() < 0.45) playSfx('firework', 0.22);
             if (fireworks.length > 14) fireworks.shift();
         }
     }
