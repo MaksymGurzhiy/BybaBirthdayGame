@@ -1964,6 +1964,7 @@ function hitBiker(dmg) {
 function beatenCutscene() {
     lair.stage = 'beaten';
     playSfx('win');
+    playMusic('city', 0.9); // бой окончен — победная городская тема
     lair.wrenches.length = 0; thicket.corns.length = 0;
     game.mode = 'cutscene';
     startCutscene([
