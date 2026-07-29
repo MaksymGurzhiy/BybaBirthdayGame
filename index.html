@@ -222,17 +222,7 @@
     #journeyScreen p { font-size: 18px; max-width: 540px; line-height: 1.7; margin-bottom: 26px; opacity: 0.9; }
     #journeyScreen .btn { max-width: 90vw; white-space: normal; line-height: 1.5; }
 
-    /* ---- Продолжение следует ---- */
-    #tbcScreen { background: rgba(20, 8, 26, 0.93); }
-    #tbcScreen h1 {
-        font-size: 52px;
-        color: #ff9ecb;
-        text-shadow: 0 0 24px rgba(255,120,180,0.55);
-        margin-bottom: 14px;
-        animation: pulse 2s infinite;
-    }
     @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
-    #tbcScreen p { font-size: 20px; max-width: 540px; line-height: 1.7; margin-bottom: 26px; }
 </style>
 </head>
 <body>
@@ -286,13 +276,17 @@
     <button class="btn" style="margin-top:14px; opacity:0.85" onclick="closeJourney()">Ещё немного подготовлюсь 🐾</button>
 </div>
 
-<!-- Продолжение следует -->
-<div id="tbcScreen" class="overlay">
-    <h1>ПРОДОЛЖЕНИЕ СЛЕДУЕТ...</h1>
-    <p>Буба Щоня и ёжик победили злого паука и пробрались<br>
-       в самое Королевство злодеяний!<br>
-       Финальная битва за Мекаса и подарок — уже совсем скоро ❤️</p>
-    <button class="btn" onclick="returnToCity()">Вернуться в город 🏠</button>
+<!-- Финальный экран -->
+<div id="finaleScreen" class="overlay" style="background: linear-gradient(135deg, #ffd1dc 0%, #ffb3d9 50%, #ffc9e5 100%);">
+    <div style="background:white; color:#33262e; border-radius:20px; padding:36px 46px; max-width:620px; box-shadow:0 10px 40px rgba(0,0,0,0.25);">
+        <h1 style="font-size:46px; color:#e63946; margin-bottom:14px;">БУБА!!!</h1>
+        <h2 style="font-size:26px; color:#d62828; line-height:1.6; margin-bottom:14px;">
+            С ДНЁМ РОЖДЕНИЯ!<br>Я ТЕБЯ ЛЮБЛЮ ЕЩЁ СИЛЬНЕЕ,<br>ЧЕМ В ПРОШЛОЙ ИГРЕ!
+        </h2>
+        <div style="font-size:34px; margin:12px 0;">❤️💕💖💗💝💘</div>
+        <p style="font-size:19px; color:#6c757d;">(с) Буба Мекас... и ёжик (фррк!)</p>
+    </div>
+    <button class="btn" style="margin-top:26px;" onclick="closeFinale()">Продолжить праздновать 🎉</button>
 </div>
 
 <audio id="musicGood" src="music_good.wav" loop></audio>
@@ -506,6 +500,7 @@ const player = makeActor(ROWS_SHONYA, PAL_SHONYA, 3, 200, 480);
 const mekas = makeActor(ROWS_MEKAS, PAL_MEKAS, 3); mekas.visible = false;
 const bikerCatSpr = buildSprite(ROWS_BIKER, PAL_BIKER, 3);
 const biker = { x: 0, y: 0, flip: false, visible: false, moving: false, riding: true };
+const bikerWalk = makeActor(ROWS_BIKER, PAL_BIKER, 3); // пеший байкер (финальный бой)
 const shopkeeper = makeActor(ROWS_SHOPKEEPER, PAL_SHOPKEEPER, 3, 544, 402); shopkeeper.visible = false; shopkeeper.mark = false;
 const barista = makeActor(CAT, PAL_BARISTA, 3, 352, 438);
 const sleeper = makeActor(ROWS_SLEEPER, PAL_SLEEPER, 3, 262, 688);
@@ -520,7 +515,7 @@ const kitten1 = makeActor(CAT, PAL_KITTEN_ORANGE, 2, 300, 310);
 const kitten2 = makeActor(ROWS_TUXEDO, PAL_TUXEDO, 2, 352, 332);
 const mage = makeActor(ROWS_MAGE, PAL_MAGE, 3); mage.visible = false;
 const hedgehog = makeActor(HEDGEHOG, PAL_HEDGEHOG, 2.5); hedgehog.visible = false;
-const grandpa = makeActor(ROWS_GRANDPA, PAL_GRANDPA, 3, 600, 352);
+const grandpa = makeActor(ROWS_GRANDPA, PAL_GRANDPA, 3, 600, 352); grandpa.visible = false;
 const guards = [
     Object.assign(makeActor(ROWS_GUARD, PAL_GUARD, 3, 350, 340), { x1: 330, x2: 660, spd: 1.25 }),
     Object.assign(makeActor(ROWS_GUARD, PAL_GUARD, 3, 1000, 424), { x1: 700, x2: 1010, spd: 1.05 }),
@@ -547,7 +542,13 @@ const QUEST_TEXT = {
     spider: '🕷️ Победи паука! Уворачивайся (WASD) и стреляй (клик/Пробел)!',
     webway: '🕸️ Иди за светящейся паутинкой на восток',
     stealth: '🏰 Стража! Перебегай из куста в куст, когда никто не смотрит',
-    done: '❤ Задание: ждать ФИНАЛ! А пока можно гулять с ёжиком',
+    lairIntro: '😼 Квартира 19 — логово байкера. Осмотрись... и приготовься!',
+    phase1: '🏍️ Уворачивайся от тарана! Стреляй (клик/Пробел), когда он врежется в стену!',
+    phase2: '💜 ФИНАЛЬНАЯ ФОРМА! Продержись в рамке — WASD',
+    phase3: '🌽 Он выдохся! Добей кукурузомётом!',
+    freeMekas: '🔑 Ключи у ёжика! Подойди к клетке и освободи Мекаса!',
+    gift: '🎁 Подарок у Бубы! Подойди к Мекасу и нажми E... 💋 А потом — к выходу слева!',
+    done: '🎉 КОНЕЦ! Гуляй, празднуй, целуйся с Мекасом и гладь ёжика! ❤',
 };
 function setQuest(q) {
     game.quest = q;
@@ -587,6 +588,7 @@ function hitSolid(px, py) {
     if (game.loc === 'city') list = citySolids;
     else if (game.loc === 'stealth') list = stealthSolids;
     else if (game.loc === 'thicket') list = thicketSolids;
+    else if (game.loc === 'lair') list = lairSolids;
     else if (game.loc === 'forest') {
         list = forestSolids;
         for (let i = 0; i < GATES.length; i++) {
@@ -793,7 +795,8 @@ function enterInterior(key) {
 }
 function exitInterior() {
     game.loc = 'city';
-    mage.visible = false;
+    if (celebration) { mage.visible = true; mage.x = 878; mage.y = 645; }
+    else mage.visible = false;
     interactLockUntil = now + 500;
     if (game.saved) { player.x = game.saved.x; player.y = game.saved.y; }
     cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
@@ -1020,8 +1023,16 @@ function updatePets() {
         mage.moving = Math.hypot(tx - mage.x, ty - mage.y) > 5;
         if (Math.abs(tx - mage.x) > 4) mage.flip = tx < mage.x;
     }
+    // Мекас-компаньон после освобождения
+    if (lair.mekasFree && mekas.visible && (game.loc === 'lair' || game.loc === 'city')) {
+        const mtx = player.x + (player.flip ? 104 : -104), mty = player.y + 4;
+        mekas.x += (mtx - mekas.x) * 0.07;
+        mekas.y += (mty - mekas.y) * 0.07;
+        mekas.moving = Math.hypot(mtx - mekas.x, mty - mekas.y) > 6;
+        if (Math.abs(mtx - mekas.x) > 5) mekas.flip = mtx < mekas.x;
+    }
     // Ёжик: подсказывает путь на болоте, иначе семенит следом
-    if (hedgehog.visible && (game.loc === 'forest' || game.loc === 'city' || game.loc === 'stealth')) {
+    if (hedgehog.visible && (game.loc === 'forest' || game.loc === 'city' || game.loc === 'stealth' || game.loc === 'lair')) {
         let tx, ty;
         if (game.loc === 'forest' && game.quest === 'trial1' && player.x > POOL.x - 150 && player.x < POOL.x + POOL.w + 60) {
             if (t1Progress >= SAFE_PATH.length - 1) {
@@ -1516,9 +1527,9 @@ function updateStealth() {
             { say: [
                 { n: '', t: '* Буба и ёжик проскользнули мимо стражи прямо к воротам!' },
                 { n: 'Буба Щоня', t: 'Держись, Мекас! Квартира 19 совсем близко!' },
-                { n: '', t: '* Впереди — логово Котика-байкера. Финальная битва уже скоро...' },
+                { n: '', t: '* На двери облезлая табличка: «кв. 19. ЗЛОДЕЙ ДОМА. НЕ ВХОДИТЬ. ОСОБЕННО КИСАМ.»' },
             ] },
-            { do: () => { setQuest('done'); game.mode = 'explore'; openTbc(); } },
+            { do: () => { game.mode = 'explore'; enterLair(); } },
         ]);
     }
 }
@@ -1560,6 +1571,596 @@ function renderStealth() {
     }
     g.textAlign = 'left';
     g.drawImage(vignette, 0, 0);
+}
+
+// ============================== КВАРТИРА 19: ФИНАЛЬНЫЙ БОЙ ==============================
+const lairSolids = [{ x: 700, y: 252, w: 192, h: 116 }];
+const lair = {
+    stage: 'off', // intro | phase1 | phase2 | phase3 | beaten
+    hp: 5, hurtUntil: 0, invulnUntil: 0,
+    bikerHp: 4, bikerHp3: 6,
+    bikerState: 'aim', stateUntil: 0, chargeVX: 0, chargeVY: 0, hintShown: false,
+    bombs: [], wrenches: [],
+    soul: { x: 250, y: 150 }, p2objs: [], p2Until: 0, p2NextWave: 0, p2Pattern: 0,
+    cageOpen: false, mekasFree: false, giftTaken: false, kissed: false,
+    keys: { x: 0, y: 0, visible: false, carried: false },
+    waypointUntil: 0, nextWrench: 0,
+};
+let celebration = false;
+const fireworks = [];
+
+let lairLayer = null;
+function buildLairLayerOnce() {
+    if (lairLayer) return;
+    lairLayer = document.createElement('canvas');
+    lairLayer.width = VIEW_W; lairLayer.height = VIEW_H;
+    const s = lairLayer.getContext('2d');
+    // Бетонный пол гаража
+    s.fillStyle = '#3a3a42'; s.fillRect(0, 0, VIEW_W, VIEW_H);
+    s.strokeStyle = '#32323a'; s.lineWidth = 2;
+    for (let x = 0; x < VIEW_W; x += 64) { s.beginPath(); s.moveTo(x, 200); s.lineTo(x, VIEW_H); s.stroke(); }
+    for (let y2 = 200; y2 < VIEW_H; y2 += 64) { s.beginPath(); s.moveTo(0, y2); s.lineTo(VIEW_W, y2); s.stroke(); }
+    // Масляные пятна
+    s.fillStyle = 'rgba(20,20,26,0.5)';
+    [[300, 420], [560, 500], [200, 520]].forEach(o => { s.beginPath(); s.ellipse(o[0], o[1], 34, 14, 0.4, 0, 7); s.fill(); });
+    // Стена
+    s.fillStyle = '#26262c'; s.fillRect(0, 0, VIEW_W, 200);
+    s.strokeStyle = '#1c1c22'; s.lineWidth = 3;
+    for (let y2 = 20; y2 < 200; y2 += 44) { s.beginPath(); s.moveTo(0, y2); s.lineTo(VIEW_W, y2); s.stroke(); }
+    s.fillStyle = 'rgba(0,0,0,0.25)'; s.fillRect(0, 190, VIEW_W, 10);
+    // Полка со сметаной
+    s.fillStyle = '#4a3826'; s.fillRect(90, 90, 170, 10); s.fillRect(90, 140, 170, 10);
+    for (let i = 0; i < 6; i++) {
+        s.fillStyle = '#e8e0d0'; s.fillRect(100 + i * 27, 64, 18, 26);
+        s.fillStyle = '#c25e5e'; s.fillRect(100 + i * 27, 60, 18, 6);
+        s.fillStyle = '#e8e0d0'; s.fillRect(104 + i * 27, 114, 18, 26);
+        s.fillStyle = '#c25e5e'; s.fillRect(104 + i * 27, 110, 18, 6);
+    }
+    // Доска «ПЛАН МЕСТИ»
+    s.fillStyle = '#5a4632'; s.fillRect(350, 50, 190, 120);
+    s.fillStyle = '#e8dcc0'; s.fillRect(358, 58, 174, 104);
+    s.strokeStyle = '#c25e5e'; s.lineWidth = 2;
+    s.beginPath(); s.moveTo(380, 80); s.lineTo(470, 120); s.moveTo(470, 80); s.lineTo(390, 130); s.moveTo(420, 70); s.lineTo(500, 140); s.stroke();
+    ['#f8f6f2', '#8a5c34', '#ffd166'].forEach((pc, i) => { s.fillStyle = pc; s.fillRect(372 + i * 52, 66, 30, 30); });
+    s.fillStyle = '#33262e'; s.font = 'bold 14px Courier New'; s.fillText('ПЛАН МЕСТИ!!!', 390, 155);
+    // Постер
+    s.fillStyle = '#2c2c35'; s.fillRect(580, 55, 110, 120);
+    s.fillStyle = '#3a3a44'; s.fillRect(586, 61, 98, 90);
+    s.fillStyle = '#9aa2ab'; s.font = '38px Courier New'; s.fillText('😼', 610, 118);
+    s.fillStyle = '#ffd166'; s.font = 'bold 10px Courier New'; s.fillText('САМЫЙ ЗЛОЙ КОТ', 592, 162);
+    s.fillText('ГОДА (2 МЕСТО)', 594, 172);
+    // Клетка Мекаса (справа)
+    s.fillStyle = '#1c1c22'; rr(s, 700, 252, 192, 116, 10); s.fill();
+    // Дверь-выход слева
+    s.fillStyle = '#1c1c22'; s.fillRect(30, 320, 46, 130);
+    s.strokeStyle = '#3a3a44'; s.lineWidth = 3; s.strokeRect(30, 320, 46, 130);
+    s.fillStyle = '#ffd166'; s.beginPath(); s.arc(66, 388, 4, 0, 7); s.fill();
+    // Табличка «кв. 19»
+    s.fillStyle = '#3a2c48'; rr(s, 22, 280, 66, 28, 6); s.fill();
+    s.fillStyle = '#c9b8e8'; s.font = 'bold 15px Courier New'; s.fillText('кв. 19', 30, 300);
+}
+
+function drawLairCage() {
+    const X = 700, Y = 252;
+    if (!lair.mekasFree) {
+        // Мекас и подарок внутри
+        g.save(); g.globalAlpha = 0.85;
+        g.drawImage(mekas.spr, X + 46, Y + 22, 60, 55);
+        g.restore();
+        drawGift(X + 130, Y + 74);
+    }
+    g.strokeStyle = '#9aa2ab'; g.lineWidth = 4;
+    if (lair.cageOpen) {
+        // Открытая дверца
+        for (let i = 0; i <= 6; i++) { g.beginPath(); g.moveTo(X + 8 + i * 12, Y + 4); g.lineTo(X + 8 + i * 12 - 30, Y - 30); g.stroke(); }
+    }
+    for (let i = 0; i <= 8; i++) {
+        const bx = X + 8 + i * 22;
+        if (!lair.cageOpen || bx > X + 96) { g.beginPath(); g.moveTo(bx, Y + 4); g.lineTo(bx, Y + 112); g.stroke(); }
+    }
+    g.strokeStyle = '#5a5f68'; g.lineWidth = 5;
+    rr(g, X, Y, 192, 116, 10); g.stroke();
+    g.fillStyle = '#c9b8e8'; g.font = 'bold 12px Courier New';
+    g.fillText('ПЛЕННИКИ НАВЕКИ (нет)', X + 18, Y + 132);
+}
+
+function enterLair() {
+    buildLairLayerOnce();
+    game.loc = 'lair'; game.mode = 'explore';
+    player.x = 130; player.y = 420; player.flip = false;
+    hedgehog.visible = true; hedgehog.x = 90; hedgehog.y = 430;
+    biker.visible = true; biker.riding = false; biker.x = 600; biker.y = 420; biker.flip = true;
+    lair.stage = 'intro'; lair.hp = 5; lair.bikerHp = 4; lair.bikerHp3 = 6;
+    lair.bombs.length = 0; lair.wrenches.length = 0; thicket.corns.length = 0;
+    lair.cageOpen = false; lair.mekasFree = false; lair.giftTaken = false;
+    lair.keys.visible = false; lair.keys.carried = false;
+    mekas.visible = false;
+    cam.x = 0; cam.y = 0;
+    setQuest('lairIntro');
+    musicBad.volume = 0.55;
+}
+
+function hurtLair(dmg) {
+    if (now < lair.invulnUntil) return;
+    lair.hp -= dmg;
+    lair.hurtUntil = now + 450;
+    lair.invulnUntil = now + 900;
+    if (lair.hp <= 0) {
+        lair.hp = 5;
+        thicket.corns.length = 0; lair.bombs.length = 0; lair.wrenches.length = 0; lair.p2objs.length = 0;
+        player.x = 150; player.y = 420;
+        if (lair.stage === 'phase2') { lair.p2Until = 0; }
+        showDialogue([
+            { n: 'Мекас (из клетки)', t: 'БУБА! Ты сможешь! Я в тебя верю!!! ❤' },
+            { n: 'Ёжик', t: 'Фррк-фррк!! (перевод: «Вставай! Покажем ему!»)' },
+        ], () => { if (lair.stage === 'phase2') startPhase2(); });
+    }
+}
+
+function startPhase1() {
+    lair.stage = 'phase1';
+    lair.bikerState = 'aim'; lair.stateUntil = now + 1200;
+    biker.riding = true; biker.x = 650; biker.y = 300;
+    setQuest('phase1');
+}
+function startPhase2() {
+    lair.stage = 'phase2';
+    lair.soul.x = 250; lair.soul.y = 150;
+    lair.p2objs.length = 0;
+    lair.p2Until = now + 22000;
+    lair.p2NextWave = now + 800;
+    lair.p2Pattern = 0;
+    biker.riding = false; biker.x = 480; biker.y = 160; biker.visible = true; biker.flip = false;
+    setQuest('phase2');
+}
+function startPhase3() {
+    lair.stage = 'phase3';
+    biker.riding = false; biker.x = 650; biker.y = 350;
+    lair.waypointUntil = 0; lair.nextWrench = now + 800;
+    setQuest('phase3');
+}
+function hitBiker(dmg) {
+    if (lair.stage === 'phase1') {
+        if (lair.bikerState !== 'crashed') {
+            if (!lair.hintShown) { lair.hintShown = true; addPopup('Бронирован! Жди удара в стену!', biker.x, biker.y - 90, 1800); }
+            return;
+        }
+        lair.bikerHp -= dmg;
+        addPopup('🌽 Попадание!', biker.x, biker.y - 90);
+        if (lair.bikerHp <= 0) {
+            lair.bombs.length = 0; thicket.corns.length = 0;
+            game.mode = 'cutscene';
+            startCutscene([
+                { say: [
+                    { n: 'Котик-байкер', t: '*кхе-кхе* МОЙ МОТОЦИКЛ! ТЫ ЗАКУКУРУЗИЛА МОЙ МОТОЦИКЛ!' },
+                    { n: 'Котик-байкер', t: 'НЕВАЖНО. Ты ещё не видела... МОЕЙ ФИНАЛЬНОЙ ФОРМЫ!' },
+                    { n: 'Котик-байкер', t: 'ПОМНИШЬ, БУБА?! В ПРОШЛЫЙ РАЗ ТЕБЕ ПОВЕЗЛО!' },
+                ] },
+                { do: () => { game.mode = 'explore'; startPhase2(); } },
+            ]);
+        }
+    } else if (lair.stage === 'phase3') {
+        lair.bikerHp3 -= dmg;
+        addPopup('🌽 Попадание!', biker.x, biker.y - 90);
+        if (lair.bikerHp3 <= 0) beatenCutscene();
+    }
+}
+
+function beatenCutscene() {
+    lair.stage = 'beaten';
+    lair.wrenches.length = 0; thicket.corns.length = 0;
+    game.mode = 'cutscene';
+    startCutscene([
+        { do: () => { game.focus = biker; } },
+        { say: [{ n: 'Котик-байкер', t: 'СДАЮСЬ!!! СДАЮСЬ!!! УБЕРИ КУКУРУЗУ!!!' }] },
+        { move: biker, x: 260, y: 420, speed: 6 },
+        { say: [{ n: 'Котик-байкер', t: 'НО КЛЮЧИ Я НЕ ОТДАМ! ОНИ МОИ ПЛЕННИКИ НАВЕКИ!!!' }] },
+        { do: () => { hedgehog.x = 850; hedgehog.y = 430; hedgehog.flip = true; game.focus = hedgehog; } },
+        { move: hedgehog, x: 268, y: 424, speed: 16 },
+        { do: () => {
+            shakeUntil = now + 700;
+            lair.keys.visible = true; lair.keys.carried = true;
+            addPopup('💥 БАМ!!!', 268, 380, 1500);
+            biker.flip = false;
+        } },
+        { say: [{ n: '', t: '* Ёжик СО ВСЕЙ СКОРОСТИ врезался в байкера! Ключи отлетели прямо на его иголки!' }] },
+        { do: () => { game.focus = player; } },
+        { move: hedgehog, x: 0, y: 0, speed: 4, behindPlayer: true },
+        { say: [
+            { n: 'Котик-байкер', t: '*поднимается, шатаясь* А... А, ЗАБИРАЙТЕ ВСЁ!' },
+            { n: 'Котик-байкер', t: 'ВЩЬО!!! ОТСТАНЬТЕ ОТ МЕНЯ!!!' },
+            { n: 'Котик-байкер', t: 'ИДИТЕ НА СВОЙ ДЕНЬ РОЖДЕНИЯ!!!' },
+        ] },
+        { move: biker, x: -120, y: 430, speed: 8 },
+        { do: () => {
+            biker.visible = false;
+            setQuest('freeMekas');
+            game.mode = 'explore';
+        } },
+    ]);
+}
+
+function openCage() {
+    hidePrompt();
+    lair.cageOpen = true;
+    lair.keys.visible = false;
+    game.mode = 'cutscene';
+    mekas.visible = true; mekas.x = 760, mekas.y = 400;
+    startCutscene([
+        { do: () => { game.focus = mekas; addPopup('🔑 Щёлк!', 780, 300, 1400); } },
+        { wait: 500 },
+        { move: mekas, x: 680, y: 440, speed: 3 },
+        { do: () => { mekas.flip = true; game.focus = player; } },
+        { say: [
+            { n: 'Буба Мекас', t: 'БУБА!!! ТЫ ПРИШЛА! Через лес, паука и стражу — ради меня?!' },
+            { n: 'Буба Мекас', t: 'Ты самая великая и смелая киса на свете! Я знал! Я всем в клетке рассказывал!' },
+            { n: 'Буба Мекас', t: 'И смотри — я защищал его ВСЮ дорогу. Даже когда байкер тыкал в него палочкой.' },
+        ] },
+        { do: () => {
+            game.mode = 'explore';
+            showPrompt('🎁 Забрать подарок', takeGift);
+        } },
+    ]);
+}
+function takeGift() {
+    hidePrompt();
+    lair.giftTaken = true;
+    lair.mekasFree = true;
+    setQuest('gift');
+    addPopup('🎁✨', player.x, player.y - 60, 1800);
+    showDialogue([
+        { n: '', t: '* Буба забрала подарок! Внутри что-то шуршит и пахнет любовью. И немного рыбкой.' },
+        { n: 'Буба Мекас', t: 'С ДНЁМ РОЖДЕНИЯ, БУБА!!! А теперь — домой! Все уже ждут!' },
+    ]);
+}
+function kissMekas() {
+    mekas.x = player.x + (player.flip ? -40 : 40);
+    mekas.y = player.y;
+    mekas.flip = !player.flip;
+    addPopup('💋', (player.x + mekas.x) / 2, player.y - 58, 1600);
+    addPopup('❤', (player.x + mekas.x) / 2 - 20, player.y - 78, 1600);
+    addPopup('❤', (player.x + mekas.x) / 2 + 22, player.y - 72, 1600);
+    if (!lair.kissed) {
+        lair.kissed = true;
+        showDialogue([{ n: '', t: '* Чмок! 💋 Мекас покраснел до кончиков ушей. Ёжик тактично отвернулся.' }]);
+    }
+}
+function exitLair() {
+    game.mode = 'cutscene';
+    startCutscene([
+        { say: [
+            { n: '', t: '* Буба, Мекас и ёжик вышли из логова и отправились домой...' },
+            { n: '', t: '* А в городе их уже ждали ВСЕ.' },
+        ] },
+        { do: () => { startCelebration(); } },
+    ]);
+}
+
+function startCelebration() {
+    celebration = true;
+    game.loc = 'city'; game.mode = 'explore';
+    player.x = 768; player.y = 620; player.flip = false;
+    mekas.visible = true; mekas.x = 810, mekas.y = 626;
+    hedgehog.visible = true; hedgehog.x = 730; hedgehog.y = 630;
+    barista.x = 660; barista.y = 600; barista.flip = false;
+    dancer.x = 850; dancer.y = 590;
+    sleeper.x = 700; sleeper.y = 660;
+    yarnKitten.x = 640; yarnKitten.y = 650;
+    shopkeeper.x = 812; shopkeeper.y = 566; shopkeeper.mark = false;
+    mage.visible = true; mage.x = 878; mage.y = 645;
+    grandpa.visible = true; grandpa.x = 690; grandpa.y = 585;
+    musicBad.volume = 1;
+    playGood();
+    cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
+    cam.y = clamp(player.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
+    game.mode = 'cutscene';
+    startCutscene([
+        { say: [
+            { n: 'Котик-маг', t: 'Моё заклинание сработало — все уже здесь! Даже торт телепортировался ровно!' },
+            { n: 'Котик-лавочник', t: 'ОЧЕНЬ большой торт — доставлен! Мур!' },
+            { n: 'Котик-дедушка', t: 'Кхе-кхе... а попкорн — с меня! *заряжает кукурузомёт*' },
+            { n: '', t: '* ВСЕ ХОРОМ: С ДНЁМ РОЖДЕНИЯ, БУБА!!! 🎉' },
+        ] },
+        { do: () => { setQuest('done'); game.mode = 'explore'; openFinale(); } },
+    ]);
+}
+
+// Вызывается каждый кадр в логове
+function updateLair() {
+    const inPlay = game.mode === 'explore' && !dlg.active && !overlayOpen;
+    if (!inPlay) return;
+    // Интро: подошла ближе — конфронтация
+    if (lair.stage === 'intro' && player.x > 420) {
+        game.mode = 'cutscene';
+        startCutscene([
+            { do: () => { biker.flip = true; game.focus = biker; } },
+            { say: [
+                { n: 'Котик-байкер', t: 'ТЫ?!?! КАК?! Мой лес! Мой паук! Моя стража! Я им СМЕТАНОЙ платил!' },
+                { n: 'Буба Щоня', t: 'Отдай Мекаса и мой подарок. По-хорошему.' },
+                { n: 'Котик-байкер', t: 'НИКОГДА! Это МОЯ месть! Ну всё, киса... ты сама напросилась.' },
+                { n: 'Котик-байкер', t: '*вскакивает на мотоцикл* ВРЕМЯ НАСТОЯЩЕЙ МЕСТИ!!!' },
+            ] },
+            { do: () => { game.focus = player; game.mode = 'explore'; startPhase1(); } },
+        ]);
+        return;
+    }
+    // ФАЗА 1: таран
+    if (lair.stage === 'phase1') {
+        if (lair.bikerState === 'aim') {
+            biker.flip = player.x < biker.x;
+            if (now > lair.stateUntil) {
+                const a = Math.atan2(player.y - biker.y, player.x - biker.x);
+                lair.chargeVX = Math.cos(a) * 8.5; lair.chargeVY = Math.sin(a) * 8.5;
+                lair.bikerState = 'charge';
+                if (Math.random() < 0.6) {
+                    lair.bombs.push({ x: biker.x, y: biker.y - 30, tx: player.x, ty: player.y, t: 0, dur: 55, boomUntil: 0 });
+                }
+            }
+        } else if (lair.bikerState === 'charge') {
+            biker.x += lair.chargeVX; biker.y += lair.chargeVY;
+            biker.flip = lair.chargeVX < 0;
+            biker.moving = true;
+            if (dist(biker.x, biker.y, player.x, player.y) < 54) {
+                hurtLair(1);
+                addPopup('💢', player.x, player.y - 60);
+            }
+            if (biker.x < 130 || biker.x > 850 || biker.y < 250 || biker.y > 520) {
+                biker.x = clamp(biker.x, 130, 850); biker.y = clamp(biker.y, 250, 520);
+                lair.bikerState = 'crashed'; lair.stateUntil = now + 2000;
+                biker.moving = false;
+                shakeUntil = now + 500;
+                addPopup('💫', biker.x, biker.y - 96, 1800);
+            }
+        } else if (lair.bikerState === 'crashed') {
+            if (now > lair.stateUntil) { lair.bikerState = 'aim'; lair.stateUntil = now + 1000 + Math.random() * 600; }
+        }
+        // Петарды
+        for (let i = lair.bombs.length - 1; i >= 0; i--) {
+            const b = lair.bombs[i];
+            if (b.boomUntil) {
+                if (now > b.boomUntil) { lair.bombs.splice(i, 1); continue; }
+                if (dist(b.tx, b.ty, player.x, player.y) < 58) hurtLair(1);
+            } else {
+                b.t++;
+                if (b.t >= b.dur) b.boomUntil = now + 420;
+            }
+        }
+    }
+    // ФАЗА 2: рамка
+    if (lair.stage === 'phase2' && lair.p2Until) {
+        if (now > lair.p2Until) {
+            lair.p2objs.length = 0; lair.p2Until = 0;
+            game.mode = 'cutscene';
+            startCutscene([
+                { say: [
+                    { n: 'Котик-байкер', t: 'ЧТО?! Даже ФИНАЛЬНАЯ ФОРМА?!' },
+                    { n: 'Котик-байкер', t: 'ПОЧЕМУ... ПОЧЕМУ ТЫ ТАКАЯ НЕПОБЕДИМАЯ?!' },
+                ] },
+                { do: () => { game.mode = 'explore'; startPhase3(); } },
+            ]);
+            return;
+        }
+        if (now > lair.p2NextWave) {
+            lair.p2NextWave = now + 2600;
+            const p = lair.p2Pattern % 4; lair.p2Pattern++;
+            if (p === 0) {
+                for (let i = 0; i < 3; i++) {
+                    const fromLeft = Math.random() < 0.5;
+                    lair.p2objs.push({ type: 'tire', x: fromLeft ? -20 - i * 60 : 520 + i * 60, y: 30 + Math.random() * 240, vx: fromLeft ? 4.2 : -4.2, vy: 0, r: 16 });
+                }
+            } else if (p === 1) {
+                for (let i = 0; i < 4; i++) {
+                    const edge = Math.floor(Math.random() * 4);
+                    let x = 0, y2 = 0;
+                    if (edge === 0) { x = Math.random() * 500; y2 = -16; }
+                    else if (edge === 1) { x = Math.random() * 500; y2 = 316; }
+                    else if (edge === 2) { x = -16; y2 = Math.random() * 300; }
+                    else { x = 516; y2 = Math.random() * 300; }
+                    const a = Math.atan2(lair.soul.y - y2, lair.soul.x - x);
+                    lair.p2objs.push({ type: 'wrench', x, y: y2, vx: Math.cos(a) * 3.4, vy: Math.sin(a) * 3.4, r: 13, rot: 0 });
+                }
+            } else if (p === 2) {
+                lair.p2objs.push({ type: 'wall', x: 520, gapY: 40 + Math.random() * 180, vx: -3.6 });
+            } else {
+                for (let i = 0; i < 5; i++) {
+                    lair.p2objs.push({ type: 'cage', x: 20 + Math.random() * 440, y: -30 - i * 70, vx: 0, vy: 3.8, w: 30, h: 26 });
+                }
+            }
+        }
+        for (let i = lair.p2objs.length - 1; i >= 0; i--) {
+            const o = lair.p2objs[i];
+            o.x += o.vx || 0; o.y += o.vy || 0;
+            if (o.rot !== undefined) o.rot += 0.2;
+            if (o.x < -80 || o.x > 600 || o.y > 380) { lair.p2objs.splice(i, 1); continue; }
+            let hit = false;
+            if (o.type === 'tire' || o.type === 'wrench') {
+                hit = dist(o.x, o.y, lair.soul.x, lair.soul.y) < o.r + 9;
+            } else if (o.type === 'cage') {
+                hit = lair.soul.x > o.x - 9 && lair.soul.x < o.x + o.w + 9 && lair.soul.y > o.y - 9 && lair.soul.y < o.y + o.h + 9;
+            } else if (o.type === 'wall') {
+                if (lair.soul.x > o.x - 9 && lair.soul.x < o.x + 26 + 9) {
+                    hit = lair.soul.y < o.gapY || lair.soul.y > o.gapY + 92;
+                }
+            }
+            if (hit && now > lair.invulnUntil) {
+                hurtLair(1);
+                if (o.type !== 'wall') lair.p2objs.splice(i, 1);
+            }
+        }
+    }
+    // ФАЗА 3: добивание
+    if (lair.stage === 'phase3') {
+        if (now > lair.waypointUntil) {
+            lair.waypointUntil = now + 1100 + Math.random() * 500;
+            lair.wpX = 160 + Math.random() * 680; lair.wpY = 260 + Math.random() * 260;
+        }
+        const dx = lair.wpX - biker.x, dy = lair.wpY - biker.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d > 8) { biker.x += dx / d * 4.2; biker.y += dy / d * 4.2; biker.moving = true; biker.flip = dx < 0; }
+        else biker.moving = false;
+        if (now > lair.nextWrench) {
+            lair.nextWrench = now + 850;
+            const a = Math.atan2(player.y - 16 - biker.y, player.x - biker.x) + (Math.random() - 0.5) * 0.2;
+            lair.wrenches.push({ x: biker.x, y: biker.y - 24, vx: Math.cos(a) * 4.0, vy: Math.sin(a) * 4.0, rot: 0, life: 200 });
+        }
+    }
+    // Гаечные ключи (фаза 3)
+    for (let i = lair.wrenches.length - 1; i >= 0; i--) {
+        const w = lair.wrenches[i];
+        w.x += w.vx; w.y += w.vy; w.rot += 0.25; w.life--;
+        if (w.life <= 0) { lair.wrenches.splice(i, 1); continue; }
+        if (dist(w.x, w.y, player.x, player.y - 14) < 26) {
+            lair.wrenches.splice(i, 1);
+            hurtLair(1);
+        }
+    }
+    // Початки в логове
+    for (let i = thicket.corns.length - 1; i >= 0; i--) {
+        const c = thicket.corns[i];
+        c.x += c.vx; c.y += c.vy; c.life--;
+        if (c.life <= 0 || c.x < 40 || c.x > 920 || c.y < 205 || c.y > 570) { thicket.corns.splice(i, 1); continue; }
+        if ((lair.stage === 'phase1' || lair.stage === 'phase3') && biker.visible && dist(c.x, c.y, biker.x, biker.y - 20) < 50) {
+            thicket.corns.splice(i, 1);
+            hitBiker(1);
+        }
+    }
+}
+
+function renderLair() {
+    bikerWalk.x = biker.x; bikerWalk.y = biker.y;
+    bikerWalk.flip = biker.flip; bikerWalk.moving = biker.moving;
+    g.save();
+    if (now < shakeUntil) g.translate(Math.sin(now * 0.09) * 4, Math.cos(now * 0.11) * 3);
+    g.drawImage(lairLayer, 0, 0);
+    drawLairCage();
+    // Ключи на иголках ёжика
+    if (lair.keys.visible) {
+        g.font = '20px Courier New';
+        g.fillText('🔑', sx(hedgehog.x) - 8, sy(hedgehog.y) - 30);
+    }
+    // Сущности
+    const ents = [];
+    if (lair.stage !== 'phase2') ents.push({ y: player.y, d: () => drawActor(player) });
+    if (hedgehog.visible && lair.stage !== 'phase2') ents.push({ y: hedgehog.y, d: () => drawActor(hedgehog) });
+    if (mekas.visible) ents.push({ y: mekas.y, d: () => drawActor(mekas) });
+    if (biker.visible && lair.stage !== 'phase2') {
+        if (biker.riding) ents.push({ y: biker.y + 12, d: () => drawBikerBike() });
+        else ents.push({ y: biker.y, d: () => drawActor(bikerWalk) });
+    }
+    ents.sort((a, b) => a.y - b.y).forEach(e => e.d());
+    // Звёзды над разбившимся байкером
+    if (lair.stage === 'phase1' && lair.bikerState === 'crashed') {
+        g.font = '22px Courier New';
+        g.fillStyle = '#ffd166';
+        g.fillText('✦', sx(biker.x) - 26 + Math.sin(now * 0.01) * 6, sy(biker.y) - 92);
+        g.fillText('✧', sx(biker.x) + 12 - Math.sin(now * 0.012) * 6, sy(biker.y) - 102);
+    }
+    // Петарды
+    for (const b of lair.bombs) {
+        if (b.boomUntil) {
+            g.fillStyle = 'rgba(255,140,60,' + (0.5 * (b.boomUntil - now) / 420).toFixed(2) + ')';
+            g.beginPath(); g.arc(sx(b.tx), sy(b.ty), 58, 0, 7); g.fill();
+            g.fillStyle = '#ffd166'; g.beginPath(); g.arc(sx(b.tx), sy(b.ty), 20, 0, 7); g.fill();
+        } else {
+            const t = b.t / b.dur;
+            const bx = b.x + (b.tx - b.x) * t, by = b.y + (b.ty - b.y) * t - Math.sin(t * Math.PI) * 90;
+            g.fillStyle = '#c25e5e'; g.beginPath(); g.arc(sx(bx), sy(by), 8, 0, 7); g.fill();
+            g.fillStyle = '#ffd166'; g.fillRect(sx(bx) - 1, sy(by) - 13, 2, 6);
+            // Метка падения
+            g.strokeStyle = 'rgba(255,100,80,0.5)'; g.lineWidth = 2;
+            g.beginPath(); g.arc(sx(b.tx), sy(b.ty), 20, 0, 7); g.stroke();
+        }
+    }
+    // Гаечные ключи
+    g.font = '24px Courier New';
+    for (const w of lair.wrenches) {
+        g.save(); g.translate(sx(w.x), sy(w.y)); g.rotate(w.rot);
+        g.fillText('🔧', -12, 8);
+        g.restore();
+    }
+    // Початки
+    for (const c of thicket.corns) {
+        g.save();
+        g.translate(sx(c.x), sy(c.y));
+        g.rotate(Math.atan2(c.vy, c.vx) + Math.PI / 2);
+        g.drawImage(cornSpr, -6, -9, 12, 18);
+        g.restore();
+    }
+    // ФАЗА 2: рамка Undertale
+    if (lair.stage === 'phase2') {
+        g.fillStyle = 'rgba(6,6,10,0.82)'; g.fillRect(0, 0, VIEW_W, VIEW_H);
+        drawActor(bikerWalk);
+        const BX = 230, BY = 170;
+        g.fillStyle = '#000'; g.fillRect(BX - 5, BY - 5, 510, 310);
+        g.strokeStyle = '#fff'; g.lineWidth = 5; g.strokeRect(BX - 5, BY - 5, 510, 310);
+        // Объекты
+        for (const o of lair.p2objs) {
+            if (o.type === 'tire') {
+                g.fillStyle = '#1c1c24'; g.beginPath(); g.arc(BX + o.x, BY + o.y, 16, 0, 7); g.fill();
+                g.strokeStyle = '#8a919a'; g.lineWidth = 3; g.beginPath(); g.arc(BX + o.x, BY + o.y, 8, 0, 7); g.stroke();
+            } else if (o.type === 'wrench') {
+                g.save(); g.translate(BX + o.x, BY + o.y); g.rotate(o.rot);
+                g.font = '24px Courier New'; g.fillStyle = '#fff'; g.fillText('🔧', -12, 8);
+                g.restore();
+            } else if (o.type === 'cage') {
+                g.strokeStyle = '#fff'; g.lineWidth = 3;
+                g.strokeRect(BX + o.x, BY + o.y, o.w, o.h);
+                g.beginPath(); g.moveTo(BX + o.x + 10, BY + o.y); g.lineTo(BX + o.x + 10, BY + o.y + o.h);
+                g.moveTo(BX + o.x + 20, BY + o.y); g.lineTo(BX + o.x + 20, BY + o.y + o.h); g.stroke();
+            } else if (o.type === 'wall') {
+                g.fillStyle = '#cfd6dd';
+                g.fillRect(BX + o.x, BY, 26, o.gapY);
+                g.fillRect(BX + o.x, BY + o.gapY + 92, 26, 300 - o.gapY - 92);
+            }
+        }
+        // Сердечко-душа
+        if (now > lair.invulnUntil || Math.floor(now / 100) % 2 === 0) {
+            g.font = '22px Courier New'; g.fillStyle = '#ff3355';
+            g.fillText('❤', BX + lair.soul.x - 10, BY + lair.soul.y + 8);
+        }
+        // Таймер
+        const left = Math.max(0, Math.ceil((lair.p2Until - now) / 1000));
+        g.fillStyle = '#fff'; g.font = 'bold 17px Courier New'; g.textAlign = 'center';
+        g.fillText('Продержись: ' + left + 'с', VIEW_W / 2, BY - 20);
+        g.textAlign = 'left';
+    }
+    // Всплывающие надписи
+    g.font = 'bold 17px Courier New'; g.textAlign = 'center';
+    for (const p of popups) {
+        g.lineWidth = 4; g.strokeStyle = 'rgba(20,16,28,0.8)';
+        g.strokeText(p.text, sx(p.x), sy(p.y));
+        g.fillStyle = '#fff'; g.fillText(p.text, sx(p.x), sy(p.y));
+    }
+    g.textAlign = 'left';
+    // HUD
+    if (lair.stage === 'phase1' || lair.stage === 'phase2' || lair.stage === 'phase3') {
+        g.drawImage(gunSpr, 14, VIEW_H - 66, gunSpr.width, gunSpr.height);
+        g.font = '24px Courier New';
+        for (let i = 0; i < lair.hp; i++) { g.fillStyle = '#ff5f7a'; g.fillText('❤', 66 + i * 30, VIEW_H - 24); }
+        const bhp = lair.stage === 'phase1' ? lair.bikerHp / 4 : (lair.stage === 'phase3' ? lair.bikerHp3 / 6 : null);
+        if (bhp !== null) {
+            g.fillStyle = 'rgba(0,0,0,0.55)'; rr(g, VIEW_W / 2 - 165, 118, 330, 36, 8); g.fill();
+            g.fillStyle = '#fff'; g.font = 'bold 14px Courier New'; g.textAlign = 'center';
+            g.fillText('😼 КОТИК-БАЙКЕР', VIEW_W / 2, 133);
+            g.textAlign = 'left';
+            g.fillStyle = '#5a1c24'; g.fillRect(VIEW_W / 2 - 150, 140, 300, 9);
+            g.fillStyle = '#ff4455'; g.fillRect(VIEW_W / 2 - 150, 140, 300 * bhp, 9);
+        }
+    }
+    // Прицел
+    if (lair.stage === 'phase1' || lair.stage === 'phase3') {
+        const AX = sx(aim.x), AY = sy(aim.y);
+        g.strokeStyle = 'rgba(255,230,120,0.85)'; g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(AX - 10, AY); g.lineTo(AX - 4, AY); g.moveTo(AX + 4, AY); g.lineTo(AX + 10, AY);
+        g.moveTo(AX, AY - 10); g.lineTo(AX, AY - 4); g.moveTo(AX, AY + 4); g.lineTo(AX, AY + 10);
+        g.stroke();
+    }
+    drawMarkerAndHint();
+    g.restore();
+    if (now < lair.hurtUntil) {
+        g.fillStyle = 'rgba(255,40,40,0.25)'; g.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
 }
 
 // ============================== ДИАЛОГИ ==============================
@@ -1614,7 +2215,9 @@ function nextStep() {
     cs.i++;
     if (cs.i >= cs.steps.length) { cs = null; return; }
     const s = cs.steps[cs.i];
-    if (s.do) { s.do(); nextStep(); return; }
+    const myCs = cs;
+    // Если s.do сам запустил новую кат-сцену, не проматываем её первый шаг
+    if (s.do) { s.do(); if (cs === myCs) nextStep(); return; }
     if (s.say) { showDialogue(s.say, nextStep); return; }
     if (s.wait) { cs.waitUntil = now + s.wait; return; }
     if (s.move) {
@@ -1776,6 +2379,27 @@ function interactables() {
         list.push({ x: grandpa.x, y: grandpa.y, act: grandpaTalk });
         return list;
     }
+    // Логово байкера
+    if (game.loc === 'lair') {
+        if (lair.mekasFree && mekas.visible) list.push({ x: mekas.x, y: mekas.y, act: kissMekas });
+        if (game.quest === 'freeMekas' && !lair.cageOpen) {
+            list.push({ x: 796, y: 400, r: 90, act: () => showPrompt('🔑 Открыть клетку', openCage) });
+        }
+        if (lair.stage === 'intro' || lair.stage === 'beaten') {
+            list.push({ x: 175, y: 245, act: () => showDialogue([
+                { n: '', t: '* Полка с банками: «Сметана. Украденная. Партия №417». Их тут СОТНИ.' },
+            ] ) });
+            list.push({ x: 445, y: 250, act: () => showDialogue([
+                { n: '', t: '* Доска «ПЛАН МЕСТИ»: фото Бубы, Мекаса и торта, много красных стрелочек.' },
+                { n: '', t: '* В углу приписка мелким почерком: «а меня вот никто не поздравляет...»' },
+            ] ) });
+            list.push({ x: 635, y: 250, act: () => showDialogue([
+                { n: '', t: '* Постер: «САМЫЙ ЗЛОЙ КОТ ГОДА — 2 МЕСТО». Первое место, судя по подписи, занял хомяк-бухгалтер.' },
+            ] ) });
+        }
+        if (lair.giftTaken) list.push({ x: 80, y: 385, r: 80, act: exitLair });
+        return list;
+    }
     // Потайной лес и стелс: только местные жители
     if (game.loc === 'forest' || game.loc === 'stealth') {
         for (const n of npcs) {
@@ -1800,6 +2424,9 @@ function interactables() {
     for (const n of npcs) {
         if (n.loc !== 'city' || !n.a.visible) continue;
         list.push({ x: n.a.x, y: n.a.y, r: n.r, prio: n.prio, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+    }
+    if (celebration && lair.mekasFree && mekas.visible) {
+        list.push({ x: mekas.x, y: mekas.y, act: kissMekas });
     }
     for (const b of buildings) {
         const doorX = b.mage ? b.x + 6 : b.x + b.w / 2;
@@ -1851,22 +2478,13 @@ function closeCard() {
     setQuest('shopkeeper');
     shopkeeperEnter();
 }
-function openTbc() {
+function openFinale() {
     overlayOpen = true;
-    document.getElementById('tbcScreen').style.display = 'flex';
+    document.getElementById('finaleScreen').style.display = 'flex';
 }
-function returnToCity() {
-    document.getElementById('tbcScreen').style.display = 'none';
+function closeFinale() {
+    document.getElementById('finaleScreen').style.display = 'none';
     overlayOpen = false;
-    game.loc = 'city'; game.mode = 'explore';
-    player.x = 1248; player.y = 560; player.flip = false;
-    hedgehog.x = player.x - 60; hedgehog.y = player.y + 6;
-    mage.visible = false;
-    setQuest('done');
-    musicBad.volume = 1;
-    playGood();
-    cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
-    cam.y = clamp(player.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
 }
 
 // ---- Кнопки-подсказки (стук в дверь мага) ----
@@ -2023,8 +2641,9 @@ addEventListener('keydown', (e) => {
     }
     if (k === 'e' || k === ' ' || k === 'enter' || k === 'z') {
         if (dlg.active) { advanceDialogue(); return; }
-        // В чаще с кукурузомётом Пробел — выстрел в сторону взгляда
-        if (game.loc === 'thicket' && game.mode === 'explore' && k === ' ' && thicket.hasGun) {
+        // С кукурузомётом Пробел — выстрел в сторону взгляда (чаща и финальный бой)
+        if ((game.loc === 'thicket' || (game.loc === 'lair' && (lair.stage === 'phase1' || lair.stage === 'phase3')))
+            && game.mode === 'explore' && k === ' ' && thicket.hasGun) {
             thicketShoot(player.flip ? Math.PI : 0);
             return;
         }
@@ -2041,7 +2660,8 @@ function mouseToWorld(e) {
 }
 cv.addEventListener('mousemove', mouseToWorld);
 cv.addEventListener('mousedown', (e) => {
-    if (game.loc === 'thicket' && game.mode === 'explore' && !dlg.active && !overlayOpen && thicket.hasGun) {
+    const canShoot = game.loc === 'thicket' || (game.loc === 'lair' && (lair.stage === 'phase1' || lair.stage === 'phase3'));
+    if (canShoot && game.mode === 'explore' && !dlg.active && !overlayOpen && thicket.hasGun) {
         mouseToWorld(e);
         thicketShoot(Math.atan2(aim.y - (player.y - 18), aim.x - player.x));
     }
@@ -2064,11 +2684,18 @@ function update() {
         if (dx && dy) { dx *= 0.707; dy *= 0.707; }
         const sp = 2.6;
         player.moving = !!(dx || dy);
+        // Фаза 2 финального боя: двигаем сердечко-душу в рамке
+        if (game.loc === 'lair' && lair.stage === 'phase2') {
+            lair.soul.x = clamp(lair.soul.x + dx * 3.8, 12, 488);
+            lair.soul.y = clamp(lair.soul.y + dy * 3.8, 12, 288);
+            player.moving = false;
+        } else {
         let minX, maxX, minY, maxY;
         if (game.loc === 'city') { minX = 22; maxX = WORLD_W - 22; minY = 40; maxY = WORLD_H - 8; }
         else if (game.loc === 'forest') { minX = 44; maxX = FOREST_W - 30; minY = 226; maxY = 464; }
         else if (game.loc === 'stealth') { minX = 40; maxX = STEALTH_W - 26; minY = 226; maxY = 464; }
         else if (game.loc === 'thicket') { minX = 40; maxX = THICKET_W - 26; minY = 226; maxY = 464; }
+        else if (game.loc === 'lair') { minX = 70; maxX = 890; minY = 215; maxY = 545; }
         else { const I = interiors[game.loc]; minX = 26; maxX = I.w - 26; minY = 126; maxY = I.h - 16; }
         if (dx) {
             const nx = clamp(player.x + dx * sp, minX, maxX);
@@ -2085,13 +2712,24 @@ function update() {
             beginKidnapScene();
         }
         if (game.loc === 'forest') updateForestTriggers();
+        }
     } else {
         player.moving = false;
     }
 
     if (game.loc === 'stealth') updateStealth();
     if (game.loc === 'thicket') updateThicket();
+    if (game.loc === 'lair') updateLair();
     updatePets();
+
+    // Праздничные фейерверки
+    if (celebration && game.loc === 'city') {
+        if (!fireworks.length || now - fireworks[fireworks.length - 1].t0 > 700) {
+            const cols = ['#ff6f91', '#ffd166', '#6fc3ff', '#9bde7e', '#c77dff'];
+            fireworks.push({ x: 500 + Math.random() * 550, y: 180 + Math.random() * 220, t0: now, col: cols[Math.floor(Math.random() * cols.length)] });
+            if (fireworks.length > 6) fireworks.shift();
+        }
+    }
 
     // Клетка закреплена на багажнике мотоцикла
     if (bag.attached && biker.visible) {
@@ -2505,6 +3143,7 @@ function render() {
     g.clearRect(0, 0, VIEW_W, VIEW_H);
     if (game.loc === 'thicket') { renderThicket(); return; }
     if (game.loc === 'stealth') { renderStealth(); return; }
+    if (game.loc === 'lair') { renderLair(); return; }
     if (game.loc === 'forest') { renderForest(); return; }
     if (game.loc !== 'city') { renderInterior(); return; }
     g.drawImage(staticLayer, -Math.round(cam.x), -Math.round(cam.y));
@@ -2514,7 +3153,7 @@ function render() {
     // Сущности с сортировкой по глубине
     const ents = [];
     ents.push({ y: player.y, d: () => drawActor(player) });
-    for (const n of [barista, sleeper, dancer, yarnKitten, shopkeeper, hedgehog]) {
+    for (const n of [barista, sleeper, dancer, yarnKitten, shopkeeper, hedgehog, mage, grandpa, mekas]) {
         if (n.visible) ents.push({ y: n.y, d: () => drawActor(n) });
     }
     if (mekas.visible) ents.push({ y: mekas.y, d: () => { drawActor(mekas); drawGift(mekas.x + 2, mekas.y - 66); } });
@@ -2533,6 +3172,35 @@ function render() {
     g.strokeStyle = '#b83a52'; g.lineWidth = 1.5;
     g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 5, 0.5, 2.6); g.stroke();
     g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 5, 3.6, 5.6); g.stroke();
+
+    // Праздник: торт и фейерверки
+    if (celebration) {
+        // Торт на столике у фонтана
+        const CX = sx(672), CY = sy(586);
+        g.fillStyle = '#8a5a3a'; g.fillRect(CX - 34, CY, 68, 12);
+        g.fillStyle = '#6e4429'; g.fillRect(CX - 30, CY + 12, 8, 14); g.fillRect(CX + 22, CY + 12, 8, 14);
+        g.fillStyle = '#ffc9e5'; rr(g, CX - 30, CY - 22, 60, 22, 5); g.fill();
+        g.fillStyle = '#fff0f6'; rr(g, CX - 22, CY - 38, 44, 18, 5); g.fill();
+        g.fillStyle = '#ffb3d9'; rr(g, CX - 14, CY - 52, 28, 16, 5); g.fill();
+        for (let i = 0; i < 3; i++) {
+            g.fillStyle = '#f5f0e0'; g.fillRect(CX - 10 + i * 9, CY - 62, 3, 10);
+            g.fillStyle = '#ffd166';
+            g.beginPath(); g.arc(CX - 8.5 + i * 9, CY - 64 + Math.sin(now * 0.01 + i) * 1.5, 3, 0, 7); g.fill();
+        }
+        // Фейерверки
+        for (const f of fireworks) {
+            const t = (now - f.t0) / 900;
+            if (t > 1) continue;
+            for (let i = 0; i < 14; i++) {
+                const a = i / 14 * 6.28;
+                const rr2 = t * 70;
+                g.fillStyle = f.col;
+                g.globalAlpha = 1 - t;
+                g.fillRect(sx(f.x + Math.cos(a) * rr2), sy(f.y + Math.sin(a) * rr2 + t * t * 30), 4, 4);
+            }
+            g.globalAlpha = 1;
+        }
+    }
 
     // Всплывающие надписи (сердечки от поглаживаний и т.п.)
     g.font = 'bold 17px Courier New'; g.textAlign = 'center';
@@ -2562,7 +3230,7 @@ requestAnimationFrame(loop);
 
 // Быстрый старт для отладки: #test — сразу в город, #scene — сразу кат-сцена похищения,
 // #auto — кат-сцена с автопрокруткой диалогов, #mage — у дома мага, #forest — сразу в лес
-if (['#test', '#scene', '#auto', '#mage', '#forest', '#thicket', '#stealth'].includes(location.hash)) {
+if (['#test', '#scene', '#auto', '#mage', '#forest', '#thicket', '#stealth', '#lair'].includes(location.hash)) {
     startGame();
     if (location.hash === '#scene' || location.hash === '#auto') { player.x = 1000; player.y = 480; }
     if (location.hash === '#auto') setInterval(() => { if (dlg.active) advanceDialogue(); }, 700);
@@ -2570,6 +3238,7 @@ if (['#test', '#scene', '#auto', '#mage', '#forest', '#thicket', '#stealth'].inc
     if (location.hash === '#forest') { mageDoorStage = 3; startForest(); }
     if (location.hash === '#thicket') { mageDoorStage = 3; enterThicket(); musicBad.play().catch(() => {}); }
     if (location.hash === '#stealth') { mageDoorStage = 3; enterStealth(); musicBad.play().catch(() => {}); }
+    if (location.hash === '#lair') { mageDoorStage = 3; thicket.hasGun = true; enterLair(); musicBad.play().catch(() => {}); }
 }
 </script>
 </body>
