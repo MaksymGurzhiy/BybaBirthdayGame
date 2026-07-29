@@ -1581,7 +1581,7 @@ const lair = {
     stage: 'off', // intro | phase1 | phase2 | phase3 | beaten
     hp: 5, hurtUntil: 0, invulnUntil: 0,
     bikerHp: 20, bikerHp3: 6,
-    bikerState: 'ride', rideDir: -1, passCount: 0, nextBomb: 0,
+    bikerState: 'ride', rideDir: -1, passCount: 0, nextBomb: 0, ridePattern: 0, rideLaneY: 386,
     stateUntil: 0, chargeVX: 0, chargeVY: 0, hintShown: false,
     bombs: [], wrenches: [],
     soul: { x: 250, y: 150 }, p2objs: [], p2Until: 0, p2NextWave: 0, p2Pattern: 0, p2Pending: null, p2Warns: [],
@@ -1704,7 +1704,7 @@ function startPhase1() {
     lair.stage = 'phase1';
     lair.bikerState = 'ride'; lair.rideDir = -1; lair.passCount = 0;
     lair.nextBomb = now + 1300;
-    lair.rideBaseY = 380; lair.zigFreq = 0.018; lair.zigAmp = 70; lair.zigPhase = 0;
+    lair.ridePattern = 0; lair.rideLaneY = 386;
     biker.riding = true; biker.x = 780; biker.y = 300;
     setQuest('phase1');
 }
@@ -1893,19 +1893,25 @@ function updateLair() {
     // ФАЗА 1: катается зигзагами, бомбит арену; после нескольких заездов — бешеный рывок в случайную стену
     if (lair.stage === 'phase1') {
         if (lair.bikerState === 'ride') {
-            biker.x += lair.rideDir * 4.2;
-            lair.rideBaseY += (clamp(player.y, 292, 500) - lair.rideBaseY) * 0.015;
-            biker.y = clamp(lair.rideBaseY + Math.sin(biker.x * lair.zigFreq + lair.zigPhase) * lair.zigAmp, 248, 524);
+            biker.x += lair.rideDir * 3.2;
+            // Три фиксированных паттерна по кругу: прямая линия, плавная волна, резкий зигзаг
+            if (lair.ridePattern === 0) {
+                biker.y += (lair.rideLaneY - biker.y) * 0.08;
+            } else if (lair.ridePattern === 1) {
+                biker.y = 386 + Math.sin(biker.x * 0.012) * 100;
+            } else {
+                const f = (biker.x / 320) - Math.floor(biker.x / 320);
+                biker.y = 276 + (f < 0.5 ? f * 2 : (2 - f * 2)) * 220;
+            }
+            biker.y = clamp(biker.y, 248, 524);
             biker.flip = lair.rideDir < 0;
             biker.moving = true;
             if (biker.x >= 850 || biker.x <= 130) {
                 biker.x = clamp(biker.x, 130, 850);
                 lair.rideDir *= -1;
                 lair.passCount++;
-                // Каждый заезд — новый зигзаг
-                lair.zigFreq = 0.012 + Math.random() * 0.02;
-                lair.zigAmp = 40 + Math.random() * 75;
-                lair.zigPhase = Math.random() * 6.28;
+                lair.ridePattern = (lair.ridePattern + 1) % 3;
+                lair.rideLaneY = [300, 386, 470][Math.floor(Math.random() * 3)];
                 if (lair.passCount >= 4) {
                     lair.passCount = 0;
                     lair.bikerState = 'rev';
