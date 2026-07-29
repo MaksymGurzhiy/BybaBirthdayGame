@@ -281,7 +281,7 @@
     <div style="background:white; color:#33262e; border-radius:20px; padding:36px 46px; max-width:620px; box-shadow:0 10px 40px rgba(0,0,0,0.25);">
         <h1 style="font-size:46px; color:#e63946; margin-bottom:14px;">БУБА!!!</h1>
         <h2 style="font-size:26px; color:#d62828; line-height:1.6; margin-bottom:14px;">
-            С ДНЁМ РОЖДЕНИЯ!<br>Я ТЕБЯ ЛЮБЛЮ ЕЩЁ СИЛЬНЕЕ,<br>ЧЕМ В ПРОШЛОЙ ИГРЕ!
+            С ДНЕМ РОЖДЕНИЯ!<br>Я ТЕБЯ ОЧЕНЬ ОЧЕНЬ СИЛЬНО<br>ЛЮБЛЮ, КИСЯ МОЯ!
         </h2>
         <div style="font-size:34px; margin:12px 0;">❤️💕💖💗💝💘</div>
         <p style="font-size:19px; color:#6c757d;">(с) Буба Мекас... и ёжик (фррк!)</p>
@@ -1023,18 +1023,30 @@ function updatePets() {
         mage.moving = Math.hypot(tx - mage.x, ty - mage.y) > 5;
         if (Math.abs(tx - mage.x) > 4) mage.flip = tx < mage.x;
     }
+    // Спутник с «мёртвой зоной»: стоит, пока Буба рядом (можно подойти и нажать E),
+    // и догоняет, только когда она отошла подальше
+    const followPet = (a, slotX, slotY, lerp) => {
+        const dPlayer = dist(a.x, a.y, player.x, player.y);
+        if (!a.following && dPlayer > 150) a.following = true;
+        if (a.following && dPlayer < 80) a.following = false;
+        if (a.following) {
+            a.x += (slotX - a.x) * lerp;
+            a.y += (slotY - a.y) * lerp;
+            a.moving = Math.hypot(slotX - a.x, slotY - a.y) > 5;
+            if (Math.abs(slotX - a.x) > 5) a.flip = slotX < a.x;
+        } else {
+            a.moving = false;
+            if (Math.abs(player.x - a.x) > 8) a.flip = player.x < a.x;
+        }
+    };
     // Мекас-компаньон после освобождения
     if (lair.mekasFree && mekas.visible && (game.loc === 'lair' || game.loc === 'city')) {
-        const mtx = player.x + (player.flip ? 104 : -104), mty = player.y + 4;
-        mekas.x += (mtx - mekas.x) * 0.07;
-        mekas.y += (mty - mekas.y) * 0.07;
-        mekas.moving = Math.hypot(mtx - mekas.x, mty - mekas.y) > 6;
-        if (Math.abs(mtx - mekas.x) > 5) mekas.flip = mtx < mekas.x;
+        followPet(mekas, player.x + (player.flip ? 104 : -104), player.y + 4, 0.07);
     }
     // Ёжик: подсказывает путь на болоте, иначе семенит следом
     if (hedgehog.visible && (game.loc === 'forest' || game.loc === 'city' || game.loc === 'stealth' || game.loc === 'lair')) {
-        let tx, ty;
         if (game.loc === 'forest' && game.quest === 'trial1' && player.x > POOL.x - 150 && player.x < POOL.x + POOL.w + 60) {
+            let tx, ty;
             if (t1Progress >= SAFE_PATH.length - 1) {
                 tx = POOL.x + POOL.w + 54; ty = tileCenter(4, 2).y;
             } else {
@@ -1042,13 +1054,13 @@ function updatePets() {
                 const tc = tileCenter(p[0], p[1]);
                 tx = tc.x; ty = tc.y - 4;
             }
+            hedgehog.x += (tx - hedgehog.x) * 0.1;
+            hedgehog.y += (ty - hedgehog.y) * 0.1;
+            hedgehog.moving = Math.hypot(tx - hedgehog.x, ty - hedgehog.y) > 5;
+            if (Math.abs(tx - hedgehog.x) > 4) hedgehog.flip = tx < hedgehog.x;
         } else {
-            tx = player.x + (player.flip ? 56 : -56); ty = player.y + 6;
+            followPet(hedgehog, player.x + (player.flip ? 56 : -56), player.y + 6, 0.1);
         }
-        hedgehog.x += (tx - hedgehog.x) * 0.1;
-        hedgehog.y += (ty - hedgehog.y) * 0.1;
-        hedgehog.moving = Math.hypot(tx - hedgehog.x, ty - hedgehog.y) > 5;
-        if (Math.abs(tx - hedgehog.x) > 4) hedgehog.flip = tx < hedgehog.x;
     }
 }
 
@@ -1580,7 +1592,8 @@ const lairSolids = [{ x: 700, y: 252, w: 192, h: 116 }];
 const lair = {
     stage: 'off', // intro | phase1 | phase2 | phase3 | beaten
     hp: 5, hurtUntil: 0, invulnUntil: 0,
-    bikerHp: 20, bikerHp3: 6,
+    bikerHp: 20, bikerHp3: 15,
+    bikerMode3: 'run', p3NextSpecial: 0, p3Pattern: 0, castUntil: 0, castNext: 0, castAngle: 0, castStep: 0,
     bikerState: 'ride', rideDir: -1, passCount: 0, nextBomb: 0, ridePattern: 0, rideLaneY: 386,
     stateUntil: 0, chargeVX: 0, chargeVY: 0, hintShown: false,
     bombs: [], wrenches: [],
@@ -1645,8 +1658,8 @@ function buildLairLayerOnce() {
 
 function drawLairCage() {
     const X = 700, Y = 252;
-    if (!lair.mekasFree) {
-        // Мекас и подарок внутри
+    if (!lair.cageOpen) {
+        // Мекас и подарок внутри (пока дверца заперта)
         g.save(); g.globalAlpha = 0.85;
         g.drawImage(mekas.spr, X + 46, Y + 22, 60, 55);
         g.restore();
@@ -1673,7 +1686,7 @@ function enterLair() {
     player.x = 130; player.y = 420; player.flip = false;
     hedgehog.visible = true; hedgehog.x = 90; hedgehog.y = 430;
     biker.visible = true; biker.riding = false; biker.x = 600; biker.y = 420; biker.flip = true;
-    lair.stage = 'intro'; lair.hp = 5; lair.bikerHp = 20; lair.bikerHp3 = 6;
+    lair.stage = 'intro'; lair.hp = 5; lair.bikerHp = 20; lair.bikerHp3 = 15;
     lair.bombs.length = 0; lair.wrenches.length = 0; thicket.corns.length = 0;
     lair.cageOpen = false; lair.mekasFree = false; lair.giftTaken = false;
     lair.keys.visible = false; lair.keys.carried = false;
@@ -1713,7 +1726,7 @@ function startPhase2() {
     lair.soul.x = 250; lair.soul.y = 150;
     lair.p2objs.length = 0;
     lair.p2Pending = null; lair.p2Warns = [];
-    lair.p2Until = now + 25000;
+    lair.p2Until = now + 45000;
     lair.p2NextWave = now + 800;
     lair.p2Pattern = 0;
     biker.riding = false; biker.x = 480; biker.y = 160; biker.visible = true; biker.flip = false;
@@ -1723,6 +1736,9 @@ function startPhase3() {
     lair.stage = 'phase3';
     biker.riding = false; biker.x = 650; biker.y = 350;
     lair.waypointUntil = 0; lair.nextWrench = now + 800;
+    lair.bikerMode3 = 'run';
+    lair.p3NextSpecial = now + 5000;
+    lair.p3Pattern = 0;
     setQuest('phase3');
 }
 function hitBiker(dmg) {
@@ -1799,7 +1815,8 @@ function openCage() {
         { do: () => { mekas.flip = true; game.focus = player; } },
         { say: [
             { n: 'Буба Мекас', t: 'БУБА!!! ТЫ ПРИШЛА! Через лес, паука и стражу — ради меня?!' },
-            { n: 'Буба Мекас', t: 'Ты самая великая и смелая киса на свете! Я знал! Я всем в клетке рассказывал!' },
+            { n: 'Буба Мекас', t: 'Я тебя очень люблю, Бубка моя! Шпашибо большое, что ты шпашла меня!' },
+            { n: 'Буба Мекас', t: 'А то я уже очень начал грустить и думал, что уже никогда не поцемаю тебя!' },
             { n: 'Буба Мекас', t: 'И смотри — я защищал его ВСЮ дорогу. Даже когда байкер тыкал в него палочкой.' },
         ] },
         { do: () => {
@@ -1869,6 +1886,48 @@ function startCelebration() {
         ] },
         { do: () => { setQuest('done'); game.mode = 'explore'; openFinale(); } },
     ]);
+}
+
+// Один паттерн атак рамки (фаза 2)
+function spawnP2Pattern(p, wave) {
+    if (p === 0) {
+        for (let i = 0; i < 5; i++) {
+            const fromLeft = Math.random() < 0.5;
+            wave.push({ type: 'tire', x: fromLeft ? -20 - i * 55 : 520 + i * 55, y: 30 + Math.random() * 240, vx: fromLeft ? 2.6 : -2.6, vy: 0, r: 16 });
+        }
+    } else if (p === 1) {
+        for (let i = 0; i < 6; i++) {
+            const edge = Math.floor(Math.random() * 4);
+            let x = 0, y2 = 0;
+            if (edge === 0) { x = Math.random() * 500; y2 = -16; }
+            else if (edge === 1) { x = Math.random() * 500; y2 = 316; }
+            else if (edge === 2) { x = -16; y2 = Math.random() * 300; }
+            else { x = 516; y2 = Math.random() * 300; }
+            const a = Math.atan2(lair.soul.y - y2, lair.soul.x - x);
+            wave.push({ type: 'wrench', x, y: y2, vx: Math.cos(a) * 2.2, vy: Math.sin(a) * 2.2, r: 13, rot: 0 });
+        }
+    } else if (p === 2) {
+        wave.push({ type: 'wall', x: 520, gapY: 40 + Math.random() * 180, vx: -2.4 });
+    } else if (p === 3) {
+        for (let i = 0; i < 7; i++) {
+            wave.push({ type: 'cage', x: 20 + Math.random() * 440, y: -30 - i * 60, vx: 0, vy: 2.6, w: 30, h: 26 });
+        }
+    } else if (p === 4) {
+        // Веер банок сметаны
+        const cx2 = 100 + Math.random() * 300, cy2 = 70 + Math.random() * 160;
+        for (let i = 0; i < 12; i++) {
+            const a = i / 12 * Math.PI * 2;
+            wave.push({ type: 'jar', x: cx2, y: cy2, vx: Math.cos(a) * 2.0, vy: Math.sin(a) * 2.0, r: 10 });
+        }
+    } else if (p === 5) {
+        // Горизонтальная стена выхлопа сверху вниз
+        wave.push({ type: 'hwall', y: -30, gapX: 40 + Math.random() * 340, vy: 2.2 });
+    } else {
+        // Мины-петарды: мигают, потом взрываются
+        for (let i = 0; i < 4; i++) {
+            wave.push({ type: 'mine', x: 40 + Math.random() * 420, y: 40 + Math.random() * 220, armUntil: now + 1950, boomUntil: 0 });
+        }
+    }
 }
 
 // Вызывается каждый кадр в логове
@@ -1995,47 +2054,12 @@ function updateLair() {
             lair.p2Warns.length = 0;
         }
         if (now > lair.p2NextWave) {
-            lair.p2NextWave = now + 3000;
+            // Вторая половина боя — интенсив: волны чаще и по два паттерна сразу
+            const intense = (lair.p2Until - now) < 22000;
+            lair.p2NextWave = now + (intense ? 2000 : 2400);
             const wave = [];
-            const p = lair.p2Pattern % 7; lair.p2Pattern++;
-            if (p === 0) {
-                for (let i = 0; i < 3; i++) {
-                    const fromLeft = Math.random() < 0.5;
-                    wave.push({ type: 'tire', x: fromLeft ? -20 - i * 60 : 520 + i * 60, y: 30 + Math.random() * 240, vx: fromLeft ? 2.6 : -2.6, vy: 0, r: 16 });
-                }
-            } else if (p === 1) {
-                for (let i = 0; i < 4; i++) {
-                    const edge = Math.floor(Math.random() * 4);
-                    let x = 0, y2 = 0;
-                    if (edge === 0) { x = Math.random() * 500; y2 = -16; }
-                    else if (edge === 1) { x = Math.random() * 500; y2 = 316; }
-                    else if (edge === 2) { x = -16; y2 = Math.random() * 300; }
-                    else { x = 516; y2 = Math.random() * 300; }
-                    const a = Math.atan2(lair.soul.y - y2, lair.soul.x - x);
-                    wave.push({ type: 'wrench', x, y: y2, vx: Math.cos(a) * 2.2, vy: Math.sin(a) * 2.2, r: 13, rot: 0 });
-                }
-            } else if (p === 2) {
-                wave.push({ type: 'wall', x: 520, gapY: 40 + Math.random() * 180, vx: -2.4 });
-            } else if (p === 3) {
-                for (let i = 0; i < 5; i++) {
-                    wave.push({ type: 'cage', x: 20 + Math.random() * 440, y: -30 - i * 70, vx: 0, vy: 2.6, w: 30, h: 26 });
-                }
-            } else if (p === 4) {
-                // Веер банок сметаны
-                const cx2 = 100 + Math.random() * 300, cy2 = 70 + Math.random() * 160;
-                for (let i = 0; i < 10; i++) {
-                    const a = i / 10 * Math.PI * 2;
-                    wave.push({ type: 'jar', x: cx2, y: cy2, vx: Math.cos(a) * 2.0, vy: Math.sin(a) * 2.0, r: 10 });
-                }
-            } else if (p === 5) {
-                // Горизонтальная стена выхлопа сверху вниз
-                wave.push({ type: 'hwall', y: -30, gapX: 40 + Math.random() * 340, vy: 2.2 });
-            } else {
-                // Мины-петарды: мигают, потом взрываются
-                for (let i = 0; i < 3; i++) {
-                    wave.push({ type: 'mine', x: 40 + Math.random() * 420, y: 40 + Math.random() * 220, armUntil: now + 1950, boomUntil: 0 });
-                }
-            }
+            spawnP2Pattern(lair.p2Pattern % 7, wave); lair.p2Pattern++;
+            if (intense) { spawnP2Pattern(lair.p2Pattern % 7, wave); lair.p2Pattern++; }
             // Предупреждения «!» в местах появления
             lair.p2Pending = { at: now + 750, objs: wave };
             lair.p2Warns = wave.map(o => ({
@@ -2074,20 +2098,67 @@ function updateLair() {
             }
         }
     }
-    // ФАЗА 3: добивание
+    // ФАЗА 3: бегает и кидает ключи; раз в 5 секунд встаёт в центр и запускает узор атак
     if (lair.stage === 'phase3') {
-        if (now > lair.waypointUntil) {
-            lair.waypointUntil = now + 1100 + Math.random() * 500;
-            lair.wpX = 160 + Math.random() * 680; lair.wpY = 260 + Math.random() * 260;
-        }
-        const dx = lair.wpX - biker.x, dy = lair.wpY - biker.y;
-        const d = Math.hypot(dx, dy) || 1;
-        if (d > 8) { biker.x += dx / d * 4.2; biker.y += dy / d * 4.2; biker.moving = true; biker.flip = dx < 0; }
-        else biker.moving = false;
-        if (now > lair.nextWrench) {
-            lair.nextWrench = now + 850;
-            const a = Math.atan2(player.y - 16 - biker.y, player.x - biker.x) + (Math.random() - 0.5) * 0.2;
-            lair.wrenches.push({ x: biker.x, y: biker.y - 24, vx: Math.cos(a) * 4.0, vy: Math.sin(a) * 4.0, rot: 0, life: 200 });
+        if (lair.bikerMode3 === 'run') {
+            if (now > lair.waypointUntil) {
+                lair.waypointUntil = now + 1100 + Math.random() * 500;
+                lair.wpX = 160 + Math.random() * 680; lair.wpY = 260 + Math.random() * 260;
+            }
+            const dx = lair.wpX - biker.x, dy = lair.wpY - biker.y;
+            const d = Math.hypot(dx, dy) || 1;
+            if (d > 8) { biker.x += dx / d * 4.2; biker.y += dy / d * 4.2; biker.moving = true; biker.flip = dx < 0; }
+            else biker.moving = false;
+            if (now > lair.nextWrench) {
+                lair.nextWrench = now + 850;
+                const a = Math.atan2(player.y - 16 - biker.y, player.x - biker.x) + (Math.random() - 0.5) * 0.2;
+                lair.wrenches.push({ x: biker.x, y: biker.y - 24, vx: Math.cos(a) * 4.0, vy: Math.sin(a) * 4.0, rot: 0, life: 200 });
+            }
+            if (now > lair.p3NextSpecial) lair.bikerMode3 = 'toCenter';
+        } else if (lair.bikerMode3 === 'toCenter') {
+            const dx = 480 - biker.x, dy = 385 - biker.y;
+            const d = Math.hypot(dx, dy) || 1;
+            if (d > 10) { biker.x += dx / d * 5.5; biker.y += dy / d * 5.5; biker.moving = true; biker.flip = dx < 0; }
+            else {
+                biker.x = 480; biker.y = 385; biker.moving = false;
+                lair.bikerMode3 = 'casting';
+                lair.castUntil = now + 2700;
+                lair.castNext = now + 350;
+                lair.castAngle = 0; lair.castStep = 0;
+                lair.p3Pattern = ((lair.p3Pattern || 0) + 1) % 3;
+                addPopup('‼️', biker.x, biker.y - 96, 900);
+            }
+        } else if (lair.bikerMode3 === 'casting') {
+            biker.moving = false;
+            const shootRing = (count, speed, off) => {
+                for (let k = 0; k < count; k++) {
+                    const a = k / count * Math.PI * 2 + off;
+                    lair.wrenches.push({ x: biker.x, y: biker.y - 20, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, rot: 0, life: 220 });
+                }
+            };
+            if (now > lair.castNext) {
+                if (lair.p3Pattern === 0) {
+                    // Кольца во все стороны со сдвигом
+                    lair.castNext = now + 850;
+                    shootRing(12, 3.0, lair.castStep * 0.26);
+                } else if (lair.p3Pattern === 1) {
+                    // Спираль
+                    lair.castNext = now + 85;
+                    lair.castAngle += 0.44;
+                    lair.wrenches.push({ x: biker.x, y: biker.y - 20, vx: Math.cos(lair.castAngle) * 3.2, vy: Math.sin(lair.castAngle) * 3.2, rot: 0, life: 220 });
+                    lair.wrenches.push({ x: biker.x, y: biker.y - 20, vx: Math.cos(lair.castAngle + Math.PI) * 3.2, vy: Math.sin(lair.castAngle + Math.PI) * 3.2, rot: 0, life: 220 });
+                } else {
+                    // Крест и диагонали попеременно
+                    lair.castNext = now + 650;
+                    shootRing(8, 3.4, lair.castStep % 2 === 0 ? 0 : Math.PI / 8);
+                }
+                lair.castStep++;
+            }
+            if (now > lair.castUntil) {
+                lair.bikerMode3 = 'run';
+                lair.p3NextSpecial = now + 5000;
+                lair.waypointUntil = 0;
+            }
         }
     }
     // Гаечные ключи (фаза 3)
@@ -2130,7 +2201,11 @@ function renderLair() {
     const ents = [];
     if (lair.stage !== 'phase2') ents.push({ y: player.y, d: () => drawActor(player) });
     if (hedgehog.visible && lair.stage !== 'phase2') ents.push({ y: hedgehog.y, d: () => drawActor(hedgehog) });
-    if (mekas.visible) ents.push({ y: mekas.y, d: () => drawActor(mekas) });
+    if (mekas.visible) ents.push({ y: mekas.y, d: () => {
+        drawActor(mekas);
+        // Мекас несёт подарок, пока Буба его не забрала
+        if (lair.cageOpen && !lair.giftTaken) drawGift(mekas.x + 2, mekas.y - 66);
+    } });
     if (biker.visible && lair.stage !== 'phase2') {
         if (biker.riding) ents.push({ y: biker.y + 12, d: () => drawBikerBike() });
         else ents.push({ y: biker.y, d: () => drawActor(bikerWalk) });
@@ -2261,7 +2336,7 @@ function renderLair() {
         g.drawImage(gunSpr, 14, VIEW_H - 66, gunSpr.width, gunSpr.height);
         g.font = '24px Courier New';
         for (let i = 0; i < lair.hp; i++) { g.fillStyle = '#ff5f7a'; g.fillText('❤', 66 + i * 30, VIEW_H - 24); }
-        const bhp = lair.stage === 'phase1' ? lair.bikerHp / 20 : (lair.stage === 'phase3' ? lair.bikerHp3 / 6 : null);
+        const bhp = lair.stage === 'phase1' ? lair.bikerHp / 20 : (lair.stage === 'phase3' ? lair.bikerHp3 / 15 : null);
         if (bhp !== null) {
             g.fillStyle = 'rgba(0,0,0,0.55)'; rr(g, VIEW_W / 2 - 165, 118, 330, 36, 8); g.fill();
             g.fillStyle = '#fff'; g.font = 'bold 14px Courier New'; g.textAlign = 'center';
