@@ -1883,6 +1883,13 @@ function startCelebration() {
     shopkeeper.x = 812; shopkeeper.y = 566; shopkeeper.mark = false;
     mage.visible = true; mage.x = 878; mage.y = 645;
     grandpa.visible = true; grandpa.x = 690; grandpa.y = 585;
+    // Жители домов тоже выходят на праздник
+    fishmonger.x = 600; fishmonger.y = 640;
+    gourmand.x = 938; gourmand.y = 636;
+    florist.x = 582; florist.y = 706;
+    mama.x = 930; mama.y = 710;
+    kitten1.x = 698; kitten1.y = 736;
+    kitten2.x = 836; kitten2.y = 740;
     musicBad.volume = 1;
     playGood();
     cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
@@ -2704,7 +2711,7 @@ function interactables() {
     if (game.loc !== 'city') {
         const I = interiors[game.loc];
         for (const n of npcs) {
-            if (n.loc !== game.loc || !n.a.visible) continue;
+            if (celebration || n.loc !== game.loc || !n.a.visible) continue;
             list.push({ x: n.a.x, y: n.a.y, r: n.r, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
         }
         if (game.loc === 'mageHome' && mage.visible) {
@@ -2728,11 +2735,40 @@ function interactables() {
             { n: 'Котик-маг', t: 'Это очень сильное колдунство. Сильнее только молочко перед сном.' },
         ]) });
     }
+    if (celebration) {
+        const guests = [
+            [fishmonger, 'Кот-рыботорговец', [
+                '* Рыбный стол — с меня! Треска, селёдка и легендарный лосось, которого я прятал ТРИ ГОДА!',
+                '* С днём рождения, Буба! Для тебя — скидка 200%. Это когда я ещё и доплачиваю!',
+            ]],
+            [gourmand, 'Котик-гурман', [
+                '* Я принёс десять селёдок. В этот раз — ЧЕСТНО, на всех!',
+                '* ...Ну, девять. Одну я съел по дороге. НЕ ОСУЖДАЙ. С днём рождения!',
+            ]],
+            [florist, 'Кися-флористка', [
+                '* СТО РОЗ, как и обещала! Ни розой меньше! С днём рождения, Буба!',
+                '* Нюхай смело — чихательный сюрприз я туда не клала. ...Наверное.',
+            ]],
+            [mama, 'Мама-кошка', [
+                '* Пирог доехал целым! С днём рождения, дорогая!',
+                '* Секретный ингредиент сегодня двойной: любовь и ШЕСТЬ банок сметаны!',
+            ]],
+            [kitten1, 'Котёнок', [
+                '* С днём лождения! Мы с братиком дарим тебе САМЫЙ КРУТОЙ МЯЧИК! Мы его всё-таки не спрятали!',
+            ]],
+            [kitten2, 'Котёнок', [
+                '* Тс-с! Я в колпаке! Меня никто не узнаёт! Я — СЕКРЕТНЫЙ ГОСТЬ!',
+            ]],
+        ];
+        for (const [ga, gname, glines] of guests) {
+            list.push({ x: ga.x, y: ga.y, act: () => showDialogue(glines.map(t => ({ n: gname, t }))) });
+        }
+    }
     if (celebration && grandpa.visible) {
         list.push({ x: grandpa.x, y: grandpa.y, act: () => showDialogue([
-            { n: 'Котик-дедушка', t: 'Кхе-кхе... В моё время поздравляли просто: тёрлись ушами!' },
-            { n: 'Котик-дедушка', t: 'Иди сюда, внученька! *трётся ухом* С днём рождения!' },
-            { n: 'Котик-дедушка', t: 'А попкорн уже заряжен. Праздничный залп по моей команде! Кхе-кхе... ОГОНЬ!' },
+            { n: 'Котик-дедушка', t: 'Кхе-кхе... С днём рождения, внученька! Мне 84 кошачьих года, и я ВПЕРВЫЕ вижу кису, которая победила злодея КУКУРУЗОЙ!' },
+            { n: 'Котик-дедушка', t: 'Кукурузомёт, кстати, оставь себе. Дарю! Только чур попкорн с него — пополам.' },
+            { n: 'Котик-дедушка', t: 'Я твой подарок нюхал, между прочим. Не скажу, что там! Но пахнет ЛЮБОВЬЮ. И немножко рыбкой. Всё, молчу-молчу.' },
         ]) });
     }
     for (const b of buildings) {
@@ -2945,6 +2981,15 @@ addEventListener('keydown', (e) => {
         thicket.hasGun = true;
         enterLair();
         musicBad.play().catch(() => {});
+        return;
+    }
+    if (k === 'k' && !dlg.active && !cs && !celebration) {
+        if (game.mode === 'title') startGame();
+        else if (overlayOpen) return;
+        mageDoorStage = 3;
+        thicket.hasGun = true;
+        lair.mekasFree = true; lair.giftTaken = true; lair.cageOpen = true;
+        startCelebration();
         return;
     }
     if (overlayOpen) {
@@ -3382,6 +3427,7 @@ function renderInterior() {
     }
     const ents = [{ y: player.y, d: () => drawActor(player) }];
     for (const n of npcs) {
+        if (celebration) continue; // на празднике все жители — в городе, дома пустые
         if (n.loc === game.loc && n.a.visible) ents.push({ y: n.a.y, d: () => drawActor(n.a) });
     }
     if (game.loc === 'mageHome' && mage.visible) ents.push({ y: mage.y, d: () => drawActor(mage) });
@@ -3476,7 +3522,9 @@ function render() {
     // Сущности с сортировкой по глубине
     const ents = [];
     ents.push({ y: player.y, d: () => drawActor(player) });
-    for (const n of [barista, sleeper, dancer, yarnKitten, shopkeeper, hedgehog, mage, grandpa, mekas]) {
+    const cityCast = [barista, sleeper, dancer, yarnKitten, shopkeeper, hedgehog, mage, grandpa, mekas];
+    if (celebration) cityCast.push(fishmonger, gourmand, florist, mama, kitten1, kitten2);
+    for (const n of cityCast) {
         if (n.visible) ents.push({ y: n.y, d: () => drawActor(n) });
     }
     if (mekas.visible) ents.push({ y: mekas.y, d: () => { drawActor(mekas); drawGift(mekas.x + 2, mekas.y - 66); } });
@@ -3496,10 +3544,36 @@ function render() {
     g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 5, 0.5, 2.6); g.stroke();
     g.beginPath(); g.arc(sx(yb.x), sy(yb.y), 5, 3.6, 5.6); g.stroke();
 
+    // Праздничные колпаки
+    if (celebration) {
+        const drawPartyHat = (x, y, s, colA, colB) => {
+            const X = sx(x), Y = sy(y);
+            const w = 20 * s, h = 24 * s;
+            g.fillStyle = colA;
+            g.beginPath(); g.moveTo(X - w / 2, Y); g.lineTo(X + w / 2, Y); g.lineTo(X, Y - h); g.closePath(); g.fill();
+            g.strokeStyle = 'rgba(40,30,50,0.45)'; g.lineWidth = 2; g.stroke();
+            g.fillStyle = colB;
+            g.beginPath();
+            g.moveTo(X - w * 0.34, Y - h * 0.34); g.lineTo(X + w * 0.34, Y - h * 0.34);
+            g.lineTo(X + w * 0.24, Y - h * 0.56); g.lineTo(X - w * 0.24, Y - h * 0.56);
+            g.closePath(); g.fill();
+            g.fillStyle = '#fff8e8';
+            g.beginPath(); g.arc(X, Y - h, 3.5 * s, 0, 7); g.fill();
+        };
+        drawPartyHat(player.x + 4, player.y - 50, 1, '#ff70a6', '#ffd166');
+        if (mekas.visible) drawPartyHat(mekas.x + 4, mekas.y - 50, 1, '#6fc3ff', '#fff');
+        if (hedgehog.visible) drawPartyHat(hedgehog.x, hedgehog.y - 14, 0.6, '#9bde7e', '#ffd166');
+        drawPartyHat(barista.x + 4, barista.y - 50, 1, '#c77dff', '#fff');
+        drawPartyHat(dancer.x + 4, dancer.y - 50, 1, '#ffd166', '#ff6f91');
+        if (grandpa.visible) drawPartyHat(grandpa.x + 4, grandpa.y - 50, 1, '#ff9e6f', '#fff');
+        drawPartyHat(kitten2.x + 2, kitten2.y - 34, 0.7, '#ff6f91', '#fff');
+        drawPartyHat(fishmonger.x + 4, fishmonger.y - 50, 1, '#6fc3ff', '#ffd166');
+    }
+
     // Праздник: торт и фейерверки
     if (celebration) {
-        // Торт на столике у фонтана
-        const CX = sx(672), CY = sy(586);
+        // Торт на столике под фонтаном (никого не загораживает)
+        const CX = sx(768), CY = sy(796);
         g.fillStyle = '#8a5a3a'; g.fillRect(CX - 34, CY, 68, 12);
         g.fillStyle = '#6e4429'; g.fillRect(CX - 30, CY + 12, 8, 14); g.fillRect(CX + 22, CY + 12, 8, 14);
         g.fillStyle = '#ffc9e5'; rr(g, CX - 30, CY - 22, 60, 22, 5); g.fill();
