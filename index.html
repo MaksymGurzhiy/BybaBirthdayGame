@@ -21,7 +21,7 @@
 
     #gameWrap {
         position: relative;
-        width: min(960px, 97vw);
+        width: min(96vw, calc((100vh - 80px) * 1.5), 1500px);
     }
 
     canvas#game {
@@ -247,6 +247,36 @@
     }
     #fwMuteBtn:hover { background: rgba(0,0,0,0.75); }
 
+    #setBtn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 7;
+        font-size: 20px;
+        padding: 6px 10px;
+        background: rgba(0,0,0,0.55);
+        border: 2px solid rgba(255,255,255,0.5);
+        border-radius: 10px;
+        cursor: pointer;
+    }
+    #setBtn:hover { background: rgba(0,0,0,0.75); }
+    #setPanel {
+        display: none;
+        position: absolute;
+        top: 58px;
+        right: 12px;
+        z-index: 7;
+        background: rgba(0,0,0,0.78);
+        border: 2px solid rgba(255,255,255,0.5);
+        border-radius: 12px;
+        padding: 14px 18px;
+        font-size: 14px;
+        color: #fff;
+        font-family: 'Courier New', monospace;
+    }
+    #setPanel .setRow { display: flex; align-items: center; gap: 10px; margin: 8px 0; white-space: nowrap; }
+    #setPanel input[type=range] { width: 160px; accent-color: #ff70a6; }
+
     /* ---- Отправление в Потайной лес ---- */
     #journeyScreen { background: linear-gradient(160deg, #10241a 0%, #1d3a2a 55%, #101f24 100%); }
     #journeyScreen h1 {
@@ -274,6 +304,11 @@
     </div>
     <div id="promptBox"></div>
     <button id="fwMuteBtn" onclick="toggleFwSound()">🔇 Выключить звук салютов</button>
+    <button id="setBtn" onclick="toggleSettings()">⚙️</button>
+    <div id="setPanel">
+        <div class="setRow">🎵 Музыка <input type="range" id="volMusic" min="0" max="100" step="5"></div>
+        <div class="setRow">🔊 Звуки <input type="range" id="volSfx" min="0" max="100" step="5"></div>
+    </div>
 </div>
 <div id="controlsHint">WASD / стрелки — ходить &nbsp;·&nbsp; E или Пробел — говорить и действовать</div>
 
@@ -332,6 +367,7 @@
 <audio id="musicCity" src="music_city.mp3" loop></audio>
 <audio id="musicForest" src="music_forest.mp3" loop></audio>
 <audio id="musicBoss" src="music_boss.mp3" loop></audio>
+<audio id="musicSpider" src="music_spider.mp3" loop></audio>
 
 <script>
 'use strict';
@@ -606,12 +642,23 @@ const musicTracks = {
     city: document.getElementById('musicCity'),
     forest: document.getElementById('musicForest'),
     boss: document.getElementById('musicBoss'),
+    spider: document.getElementById('musicSpider'),
 };
 let currentTrack = null;
+let currentTrackBase = 1;
+// Пользовательские громкости (регулируются в настройках ⚙️, запоминаются)
+let musicVolume = 0.5, sfxVolume = 1;
+try {
+    musicVolume = parseFloat(localStorage.getItem('bybaMusicVol') ?? '0.5');
+    sfxVolume = parseFloat(localStorage.getItem('bybaSfxVol') ?? '1');
+    if (isNaN(musicVolume)) musicVolume = 0.5;
+    if (isNaN(sfxVolume)) sfxVolume = 1;
+} catch (e) {}
 function playMusic(name, vol) {
     const t = musicTracks[name];
     if (!t) return;
-    t.volume = vol === undefined ? 1 : vol;
+    currentTrackBase = vol === undefined ? 1 : vol;
+    t.volume = clamp(currentTrackBase * musicVolume, 0, 1);
     if (currentTrack === t) { t.play().catch(() => {}); return; }
     for (const k in musicTracks) {
         if (musicTracks[k] !== t) { musicTracks[k].pause(); musicTracks[k].currentTime = 0; }
@@ -631,7 +678,7 @@ function stopMusic() {
 // Файлы кладутся в папку sounds/ с именами sfx_<имя>.mp3 (или .wav).
 // Если файла нет — звук просто не играет, игра работает как обычно.
 const SFX_NAMES = ['click', 'blip', 'meow', 'hedgehog', 'kiss', 'knock', 'door', 'corn', 'hit', 'hurt',
-                   'boom', 'moto', 'crash', 'splash', 'alarm', 'win', 'firework', 'magic', 'spider', 'heart'];
+                   'boom', 'moto', 'crash', 'splash', 'alarm', 'win', 'firework', 'magic', 'spider', 'heart', 'steps'];
 const sfx = {};
 SFX_NAMES.forEach(n => {
     const a = new Audio();
@@ -649,10 +696,33 @@ function playSfx(n, vol) {
     if (!e || !e.ok) return;
     try {
         const c = e.el.cloneNode();
-        c.volume = vol === undefined ? 0.6 : vol;
+        c.volume = clamp((vol === undefined ? 0.6 : vol) * sfxVolume, 0, 1);
         c.play().catch(() => {});
     } catch (err) { /* звук недоступен — тихо пропускаем */ }
 }
+
+// ---- Настройки громкости ----
+function toggleSettings() {
+    const p = document.getElementById('setPanel');
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+(function initSettings() {
+    const vm = document.getElementById('volMusic');
+    const vs = document.getElementById('volSfx');
+    vm.value = Math.round(musicVolume * 100);
+    vs.value = Math.round(sfxVolume * 100);
+    vm.oninput = () => {
+        musicVolume = vm.value / 100;
+        try { localStorage.setItem('bybaMusicVol', musicVolume); } catch (e) {}
+        if (currentTrack) currentTrack.volume = clamp(currentTrackBase * musicVolume, 0, 1);
+    };
+    vm.onchange = () => vm.blur();
+    vs.oninput = () => {
+        sfxVolume = vs.value / 100;
+        try { localStorage.setItem('bybaSfxVol', sfxVolume); } catch (e) {}
+    };
+    vs.onchange = () => { playSfx('meow', 0.5); vs.blur(); };
+})();
 
 // ============================== МИР: ЗДАНИЯ И ПРЕПЯТСТВИЯ ==============================
 const buildings = [
@@ -1016,13 +1086,13 @@ vignette.width = VIEW_W; vignette.height = VIEW_H;
 function beginForestIntro() {
     game.mode = 'cutscene';
     startCutscene([
-        { do: () => { game.focus = player; shakeUntil = now + 2200; } },
+        { do: () => { game.focus = player; shakeUntil = now + 2200; playSfx('steps', 0.75); } },
         { say: [{ n: '', t: '* ...ТОП. ТОП. ТОП.' }] },
         { say: [{ n: 'Котик-маг', t: 'М-мяу?! Ты слышала?! Что-то ОГРОМНОЕ! И оно ТОПАЕТ!' }] },
         { move: mage, x: 0, y: 0, speed: 6, behindPlayer: true },
         { do: () => { mage.flip = false; } },
         { say: [{ n: 'Котик-маг', t: 'Я н-не прячусь! Это тактическая позиция великого мага!' }] },
-        { do: () => { bushShakeUntil = now + 2800; shakeUntil = now + 1400; } },
+        { do: () => { bushShakeUntil = now + 2800; shakeUntil = now + 1400; playSfx('steps', 0.75); } },
         { wait: 1500 },
         { say: [{ n: '', t: '* Кусты шевелятся... Деревья скрипят... Кто-то приближается...' }] },
         { wait: 900 },
@@ -1315,6 +1385,7 @@ function enterThicket() {
     thicket.spider.hp = thicket.spider.maxHp;
     thicket.spider.x = 1500; thicket.spider.y = 200;
     grandpa.x = 600; grandpa.y = 352;
+    grandpa.visible = true;
     hedgehog.visible = false;
     cam.x = 0; cam.y = 0;
     setQuest('thicket');
@@ -1364,6 +1435,7 @@ function hitSpider(dmg) {
     if (thicket.spider.hp <= 0) {
         thicket.spider.hp = 0; thicket.stage = 'won'; thicket.webs.length = 0;
         playSfx('win');
+        playMusic('forest', 0.8);
         setQuest('webway');
         showDialogue([
             { n: 'Злой паук', t: 'КХШШ... ХВАТИТ! СДАЮСЬ! Убери свою страшную кукурузу!' },
@@ -1388,6 +1460,7 @@ function updateThicket() {
         thicket.stage = 'boss';
         shakeUntil = now + 1600;
         playSfx('spider');
+        playMusic('spider', 0.85);
         setQuest('spider');
         showDialogue([
             { n: '???', t: '*ветки трещат... что-то огромное спускается сверху*' },
@@ -1611,6 +1684,7 @@ function catchPlayer() {
 }
 function enterStealth() {
     buildStealthLayerOnce();
+    grandpa.visible = false; // дедушка остался в чаще
     game.loc = 'stealth'; game.mode = 'explore';
     player.x = 80; player.y = 345; player.flip = false;
     hedgehog.visible = true; hedgehog.x = 30; hedgehog.y = 352;
