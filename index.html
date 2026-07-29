@@ -230,6 +230,23 @@
     }
     #promptBox .btn { display: block; margin: 10px auto; font-size: 17px; padding: 12px 30px; }
 
+    #fwMuteBtn {
+        display: none;
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        z-index: 6;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        padding: 8px 14px;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        border: 2px solid rgba(255,255,255,0.5);
+        border-radius: 10px;
+        cursor: pointer;
+    }
+    #fwMuteBtn:hover { background: rgba(0,0,0,0.75); }
+
     /* ---- Отправление в Потайной лес ---- */
     #journeyScreen { background: linear-gradient(160deg, #10241a 0%, #1d3a2a 55%, #101f24 100%); }
     #journeyScreen h1 {
@@ -256,6 +273,7 @@
         <div id="dlgCont">▼ E / клик</div>
     </div>
     <div id="promptBox"></div>
+    <button id="fwMuteBtn" onclick="toggleFwSound()">🔇 Выключить звук салютов</button>
 </div>
 <div id="controlsHint">WASD / стрелки — ходить &nbsp;·&nbsp; E или Пробел — говорить и действовать</div>
 
@@ -311,6 +329,9 @@
 
 <audio id="musicGood" src="music_good.wav" loop></audio>
 <audio id="musicBad" src="music_bad.wav" loop></audio>
+<audio id="musicCity" src="music_city.mp3" loop></audio>
+<audio id="musicForest" src="music_forest.mp3" loop></audio>
+<audio id="musicBoss" src="music_boss.mp3" loop></audio>
 
 <script>
 'use strict';
@@ -578,9 +599,33 @@ function setQuest(q) {
 // ============================== МУЗЫКА ==============================
 const musicGood = document.getElementById('musicGood');
 const musicBad = document.getElementById('musicBad');
-function playGood() { musicBad.pause(); musicBad.currentTime = 0; musicGood.play().catch(() => {}); }
-function playBad() { musicGood.pause(); musicGood.currentTime = 0; musicBad.play().catch(() => {}); }
-function stopMusic() { musicGood.pause(); musicBad.pause(); }
+// Тематические треки по локациям (лупом): город, лес (лес/чаща/стелс), босс у байкера
+const musicTracks = {
+    good: musicGood,
+    bad: musicBad,
+    city: document.getElementById('musicCity'),
+    forest: document.getElementById('musicForest'),
+    boss: document.getElementById('musicBoss'),
+};
+let currentTrack = null;
+function playMusic(name, vol) {
+    const t = musicTracks[name];
+    if (!t) return;
+    t.volume = vol === undefined ? 1 : vol;
+    if (currentTrack === t) { t.play().catch(() => {}); return; }
+    for (const k in musicTracks) {
+        if (musicTracks[k] !== t) { musicTracks[k].pause(); musicTracks[k].currentTime = 0; }
+    }
+    currentTrack = t;
+    t.loop = true;
+    t.play().catch(() => {});
+}
+function playGood() { playMusic('city'); }
+function playBad() { playMusic('bad'); }
+function stopMusic() {
+    for (const k in musicTracks) musicTracks[k].pause();
+    currentTrack = null;
+}
 
 // ============================== ЗВУКОВЫЕ ЭФФЕКТЫ ==============================
 // Файлы кладутся в папку sounds/ с именами sfx_<имя>.mp3 (или .wav).
@@ -1273,7 +1318,7 @@ function enterThicket() {
     hedgehog.visible = false;
     cam.x = 0; cam.y = 0;
     setQuest('thicket');
-    musicBad.volume = 0.45;
+    playMusic('forest', 0.8);
 }
 
 function grandpaTalk() {
@@ -1571,7 +1616,7 @@ function enterStealth() {
     hedgehog.visible = true; hedgehog.x = 30; hedgehog.y = 352;
     cam.x = 0; cam.y = 0;
     setQuest('stealth');
-    musicBad.volume = 0.35;
+    playMusic('forest', 0.7);
     showDialogue([
         { n: 'Ёжик', t: 'Фррк-фррк!! (перевод: «Я пробежал в обход! Я очень храбрый, когда светло!»)' },
         { n: '', t: '* Впереди — стена Королевства злодеяний. У ворот ходит стража...' },
@@ -1763,7 +1808,7 @@ function enterLair() {
     mekas.visible = false;
     cam.x = 0; cam.y = 0;
     setQuest('lairIntro');
-    musicBad.volume = 0.55;
+    playMusic('boss', 0.85);
 }
 
 function hurtLair(dmg) {
@@ -1935,9 +1980,17 @@ function exitLair() {
     ]);
 }
 
+let fwMuted = false;
+function toggleFwSound() {
+    fwMuted = !fwMuted;
+    document.getElementById('fwMuteBtn').textContent = fwMuted ? '🔊 Включить звук салютов' : '🔇 Выключить звук салютов';
+    playSfx('click', 0.4);
+}
+
 function startCelebration() {
     celebration = true;
     playSfx('win');
+    document.getElementById('fwMuteBtn').style.display = 'block';
     game.loc = 'city'; game.mode = 'explore';
     player.x = 768; player.y = 620; player.flip = false;
     mekas.visible = true; mekas.x = 810, mekas.y = 626;
@@ -1956,8 +2009,7 @@ function startCelebration() {
     mama.x = 930; mama.y = 710;
     kitten1.x = 698; kitten1.y = 736;
     kitten2.x = 836; kitten2.y = 740;
-    musicBad.volume = 1;
-    playGood();
+    playMusic('city');
     cam.x = clamp(player.x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
     cam.y = clamp(player.y - VIEW_H / 2, 0, WORLD_H - VIEW_H);
     game.mode = 'cutscene';
@@ -2563,6 +2615,8 @@ function showPortrait(speaker) {
 function showDialogue(lines, onDone) {
     dlg.active = true; dlg.lines = lines; dlg.idx = -1; dlg.onDone = onDone || null;
     dlgBox.style.display = 'block';
+    const fwBtn = document.getElementById('fwMuteBtn');
+    fwBtn.style.visibility = 'hidden';
     nextLine();
 }
 function nextLine() {
@@ -2594,6 +2648,7 @@ function advanceDialogue() {
 function closeDialogue() {
     dlg.active = false;
     dlgBox.style.display = 'none';
+    document.getElementById('fwMuteBtn').style.visibility = 'visible';
     if (dlg.interval) { clearInterval(dlg.interval); dlg.interval = null; }
     const cb = dlg.onDone; dlg.onDone = null;
     if (cb) cb();
@@ -3037,9 +3092,7 @@ function startForest() {
     t1Progress = -1;
     splashes.length = 0; popups.length = 0;
     cam.x = 0; cam.y = 0;
-    musicGood.pause();
-    musicBad.volume = 0.35;
-    musicBad.play().catch(() => {});
+    playMusic('forest', 0.75);
 }
 
 // Фото на визитке
@@ -3085,7 +3138,6 @@ addEventListener('keydown', (e) => {
         else if (overlayOpen) return;
         mageDoorStage = 3;
         enterThicket();
-        musicBad.play().catch(() => {});
         return;
     }
     if (k === 'p' && !dlg.active && !cs && game.loc !== 'lair') {
@@ -3094,7 +3146,6 @@ addEventListener('keydown', (e) => {
         mageDoorStage = 3;
         thicket.hasGun = true;
         enterLair();
-        musicBad.play().catch(() => {});
         return;
     }
     if (k === 'k' && !dlg.active && !cs && !celebration) {
@@ -3209,7 +3260,7 @@ function update() {
                 col: cols[Math.floor(Math.random() * cols.length)],
                 big: Math.random() < 0.35,
             });
-            if (Math.random() < 0.45) playSfx('firework', 0.22);
+            if (!fwMuted && Math.random() < 0.45) playSfx('firework', 0.22);
             if (fireworks.length > 14) fireworks.shift();
         }
     }
@@ -3772,9 +3823,9 @@ if (['#test', '#scene', '#auto', '#mage', '#forest', '#thicket', '#stealth', '#l
     if (location.hash === '#auto') setInterval(() => { if (dlg.active) advanceDialogue(); }, 700);
     if (location.hash === '#mage') { setQuest('mage'); player.x = 1296; player.y = 852; }
     if (location.hash === '#forest') { mageDoorStage = 3; startForest(); }
-    if (location.hash === '#thicket') { mageDoorStage = 3; enterThicket(); musicBad.play().catch(() => {}); }
-    if (location.hash === '#stealth') { mageDoorStage = 3; enterStealth(); musicBad.play().catch(() => {}); }
-    if (location.hash === '#lair') { mageDoorStage = 3; thicket.hasGun = true; enterLair(); musicBad.play().catch(() => {}); }
+    if (location.hash === '#thicket') { mageDoorStage = 3; enterThicket(); }
+    if (location.hash === '#stealth') { mageDoorStage = 3; enterStealth(); }
+    if (location.hash === '#lair') { mageDoorStage = 3; thicket.hasGun = true; enterLair(); }
 }
 </script>
 </body>
