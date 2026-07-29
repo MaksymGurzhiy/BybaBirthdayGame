@@ -1240,6 +1240,13 @@ function grandpaTalk() {
     ], () => { thicket.hasGun = true; setQuest('gun'); });
 }
 
+function throwBomb(angle) {
+    lair.carryBomb = false;
+    lair.thrownBombs.push({
+        x: player.x + Math.cos(angle) * 26, y: player.y - 18 + Math.sin(angle) * 26,
+        vx: Math.cos(angle) * 6.5, vy: Math.sin(angle) * 6.5, life: 140,
+    });
+}
 function thicketShoot(angle) {
     if (!thicket.hasGun || now < thicket.lastShot + 300) return;
     thicket.lastShot = now;
@@ -1592,8 +1599,9 @@ const lairSolids = [{ x: 700, y: 252, w: 192, h: 116 }];
 const lair = {
     stage: 'off', // intro | phase1 | phase2 | phase3 | beaten
     hp: 5, hurtUntil: 0, invulnUntil: 0,
-    bikerHp: 20, bikerHp3: 15,
+    bikerHp: 20, bikerHp3: 45,
     bikerMode3: 'run', p3NextSpecial: 0, p3Pattern: 0, castUntil: 0, castNext: 0, castAngle: 0, castStep: 0,
+    pickups: [], nextPickup: 0, carryBomb: false, thrownBombs: [],
     bikerState: 'ride', rideDir: -1, passCount: 0, nextBomb: 0, ridePattern: 0, rideLaneY: 386,
     stateUntil: 0, chargeVX: 0, chargeVY: 0, hintShown: false,
     bombs: [], wrenches: [],
@@ -1686,7 +1694,8 @@ function enterLair() {
     player.x = 130; player.y = 420; player.flip = false;
     hedgehog.visible = true; hedgehog.x = 90; hedgehog.y = 430;
     biker.visible = true; biker.riding = false; biker.x = 600; biker.y = 420; biker.flip = true;
-    lair.stage = 'intro'; lair.hp = 5; lair.bikerHp = 20; lair.bikerHp3 = 15;
+    lair.stage = 'intro'; lair.hp = 5; lair.bikerHp = 20; lair.bikerHp3 = 45;
+    lair.pickups.length = 0; lair.thrownBombs.length = 0; lair.carryBomb = false;
     lair.bombs.length = 0; lair.wrenches.length = 0; thicket.corns.length = 0;
     lair.cageOpen = false; lair.mekasFree = false; lair.giftTaken = false;
     lair.keys.visible = false; lair.keys.carried = false;
@@ -1739,6 +1748,8 @@ function startPhase3() {
     lair.bikerMode3 = 'run';
     lair.p3NextSpecial = now + 5000;
     lair.p3Pattern = 0;
+    lair.pickups.length = 0; lair.thrownBombs.length = 0; lair.carryBomb = false;
+    lair.nextPickup = now + 2000;
     setQuest('phase3');
 }
 function hitBiker(dmg) {
@@ -2042,6 +2053,9 @@ function updateLair() {
                 { say: [
                     { n: 'Котик-байкер', t: 'ЧТО?! Даже ФИНАЛЬНАЯ ФОРМА?!' },
                     { n: 'Котик-байкер', t: 'ПОЧЕМУ... ПОЧЕМУ ТЫ ТАКАЯ НЕПОБЕДИМАЯ?!' },
+                    { n: 'Котик-байкер', t: '...Хотя. Кхм-кхм. МУХАХАХАХА!!!' },
+                    { n: 'Котик-байкер', t: 'Я ТЕБЯ ОБМАНУЛ! ЭТО БЫЛА НЕ ФИНАЛЬНАЯ ФОРМА!' },
+                    { n: 'Котик-байкер', t: 'ВОТ МОЯ ФИНАЛЬНАЯ ФАЗА НА САМОМ ДЕЛЕ!!!' },
                 ] },
                 { do: () => { game.mode = 'explore'; startPhase3(); } },
             ]);
@@ -2160,6 +2174,46 @@ function updateLair() {
                 lair.waypointUntil = 0;
             }
         }
+        // Пикапы на полу: сердечки лечат, бомбочки можно кинуть в байкера
+        if (now > lair.nextPickup && lair.pickups.length < 5) {
+            lair.nextPickup = now + 3000;
+            lair.pickups.push({
+                x: 150 + Math.random() * 660, y: 265 + Math.random() * 250,
+                kind: Math.random() < 0.5 ? 'heart' : 'bomb',
+            });
+        }
+        for (let i = lair.pickups.length - 1; i >= 0; i--) {
+            const pk = lair.pickups[i];
+            if (dist(pk.x, pk.y, player.x, player.y) < 32) {
+                if (pk.kind === 'heart') {
+                    if (lair.hp < 5) {
+                        lair.hp++;
+                        addPopup('💗 +1', player.x, player.y - 60);
+                        lair.pickups.splice(i, 1);
+                    }
+                } else if (!lair.carryBomb) {
+                    lair.carryBomb = true;
+                    addPopup('💣 Кинь её в байкера!', player.x, player.y - 60, 1600);
+                    lair.pickups.splice(i, 1);
+                }
+            }
+        }
+        // Брошенные бомбы
+        for (let i = lair.thrownBombs.length - 1; i >= 0; i--) {
+            const tb = lair.thrownBombs[i];
+            if (!tb) continue;
+            tb.x += tb.vx; tb.y += tb.vy; tb.life--;
+            if (tb.life <= 0 || tb.x < 80 || tb.x > 890 || tb.y < 220 || tb.y > 560) {
+                lair.thrownBombs.splice(i, 1);
+                continue;
+            }
+            if (biker.visible && dist(tb.x, tb.y, biker.x, biker.y - 20) < 55) {
+                lair.thrownBombs.splice(i, 1);
+                shakeUntil = now + 400;
+                addPopup('💥 -5!!!', biker.x, biker.y - 96, 1400);
+                hitBiker(5);
+            }
+        }
     }
     // Гаечные ключи (фаза 3)
     for (let i = lair.wrenches.length - 1; i >= 0; i--) {
@@ -2185,6 +2239,16 @@ function updateLair() {
     }
 }
 
+function drawBombIcon(wx, wy) {
+    const X = sx(wx), Y = sy(wy);
+    g.fillStyle = '#26262e'; g.beginPath(); g.arc(X, Y, 11, 0, 7); g.fill();
+    g.strokeStyle = '#111118'; g.lineWidth = 2; g.stroke();
+    g.strokeStyle = '#8a5a3a'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(X + 5, Y - 9); g.lineTo(X + 10, Y - 16); g.stroke();
+    g.fillStyle = '#ffd166';
+    g.beginPath(); g.arc(X + 11, Y - 17, 3 + Math.sin(now * 0.03) * 1.5, 0, 7); g.fill();
+}
+
 function renderLair() {
     bikerWalk.x = biker.x; bikerWalk.y = biker.y;
     bikerWalk.flip = biker.flip; bikerWalk.moving = biker.moving;
@@ -2192,6 +2256,15 @@ function renderLair() {
     if (now < shakeUntil) g.translate(Math.sin(now * 0.09) * 4, Math.cos(now * 0.11) * 3);
     g.drawImage(lairLayer, 0, 0);
     drawLairCage();
+    // Пикапы на полу (фаза 3)
+    for (const pk of lair.pickups) {
+        if (pk.kind === 'heart') {
+            g.font = '22px Courier New';
+            g.fillText('💗', sx(pk.x) - 11, sy(pk.y) + 6 - Math.abs(Math.sin(now * 0.005 + pk.x)) * 5);
+        } else {
+            drawBombIcon(pk.x, pk.y);
+        }
+    }
     // Ключи на иголках ёжика
     if (lair.keys.visible) {
         g.font = '20px Courier New';
@@ -2257,6 +2330,9 @@ function renderLair() {
         g.drawImage(cornSpr, -6, -9, 12, 18);
         g.restore();
     }
+    // Летящие бомбы и бомба в лапках
+    for (const tb of lair.thrownBombs) drawBombIcon(tb.x, tb.y);
+    if (lair.carryBomb) drawBombIcon(player.x + 16, player.y - 62);
     // ФАЗА 2: рамка Undertale
     if (lair.stage === 'phase2') {
         g.fillStyle = 'rgba(6,6,10,0.82)'; g.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -2336,7 +2412,7 @@ function renderLair() {
         g.drawImage(gunSpr, 14, VIEW_H - 66, gunSpr.width, gunSpr.height);
         g.font = '24px Courier New';
         for (let i = 0; i < lair.hp; i++) { g.fillStyle = '#ff5f7a'; g.fillText('❤', 66 + i * 30, VIEW_H - 24); }
-        const bhp = lair.stage === 'phase1' ? lair.bikerHp / 20 : (lair.stage === 'phase3' ? lair.bikerHp3 / 15 : null);
+        const bhp = lair.stage === 'phase1' ? lair.bikerHp / 20 : (lair.stage === 'phase3' ? lair.bikerHp3 / 45 : null);
         if (bhp !== null) {
             g.fillStyle = 'rgba(0,0,0,0.55)'; rr(g, VIEW_W / 2 - 165, 118, 330, 36, 8); g.fill();
             g.fillStyle = '#fff'; g.font = 'bold 14px Courier New'; g.textAlign = 'center';
@@ -2508,19 +2584,33 @@ const npcs = [
         '* Мур! Сама Буба Щоня зашла в наш район!',
         '* Заходи на чашечку мур-чино! Сегодня для тебя — бесплатно.',
         '* Только не говори нашему бухгалтеру. Он хомяк, и он ОЧЕНЬ строгий!',
+    ], festive: [
+        '* С ДНЁМ РОЖДЕНИЯ, БУБА!!! Мур-чино для именинницы — за счёт заведения! И для Мекаса! И для ёжика!',
+        '* ...Бухгалтер-хомяк уже плачет, но сегодня можно!',
+        '* Я нарисовала на пенке твой портрет! Ну... это либо ты, либо очень красивая рыба.',
     ] },
     { loc: 'city', a: sleeper, name: 'Сонный котик', lines: [
         '* Хррр... мяу... ещё пять минуточек...',
         '* ...я всю ночь надувал шарики... хррр... для кого?.. секрет...',
+    ], festive: [
+        '* С днём рождения, Буба!!! Я ради этого праздника не спал ВСЮ ночь!',
+        '* ...поэтому подремлю прямо тут. Поздравляю... хррр... мяу...',
     ] },
     { loc: 'city', a: dancer, name: 'Котик-танцор', lines: [
         '* Раз-два-мяу! Раз-два-мяу!',
         '* Я репетирую танец для одного ОЧЕНЬ важного праздника!',
         '* Какого? Не скажу! Это сюрприз. Мяу!',
+    ], festive: [
+        '* С ДНЁМ РОЖДЕНИЯ!!! Смотри, я выучил новый танец — УЯМ!',
+        '* УЯМ — это как МЯУ, только наоборот: все те же движения, но задом наперёд!',
+        '* Раз-два-мяу! Уям-два-раз! ...Ой. Кажется, я затанцевался в обратную сторону.',
     ] },
     { loc: 'city', a: yarnKitten, name: 'Котёнок с клубком', lines: [
         '* Смотри, какой у меня клубок! Самый круглый в городе!',
         '* Мама сказала, сегодня в городе большой праздник. Интересно, чей?',
+    ], festive: [
+        '* С днём рождения, Буба! Я дарю тебе СВОЙ КЛУБОК! Самый круглый в городе!',
+        '* ...Только можно я буду иногда приходить его катать? Ну пожалуйста-мяу!',
     ] },
     { loc: 'market', a: fishmonger, name: 'Кот-рыботорговец', lines: [
         '* Свежайшая рыба! Прямиком из Мур-океана!',
@@ -2568,6 +2658,9 @@ const npcs = [
         '* Но не переживай! Наш Котик-маг знает дорогу — он в том лесу грибы собирает.',
         '* Его дом ниже по улице: фиолетовая крыша со звёздами. Не перепутаешь!',
         '* Удачи, Буба! Весь город в тебя верит. Ты же величайшая киса!',
+    ], festive: [
+        '* С ДНЁМ РОЖДЕНИЯ, величайшая киса! В подарок — год бесплатной валерьянки!',
+        '* Только тс-с! А то набегут коты со всего Королевства злодеяний. У них там, говорят, дефицит.',
     ], onDone: () => { if (game.quest === 'shopkeeper') { setQuest('mage'); shopkeeper.mark = false; } } },
 ];
 
@@ -2622,10 +2715,25 @@ function interactables() {
     }
     for (const n of npcs) {
         if (n.loc !== 'city' || !n.a.visible) continue;
-        list.push({ x: n.a.x, y: n.a.y, r: n.r, prio: n.prio, act: () => showDialogue(n.lines.map(t => ({ n: n.name, t })), n.onDone) });
+        const useLines = (celebration && n.festive) ? n.festive : n.lines;
+        list.push({ x: n.a.x, y: n.a.y, r: n.r, prio: n.prio, act: () => showDialogue(useLines.map(t => ({ n: n.name, t })), n.onDone) });
     }
     if (celebration && lair.mekasFree && mekas.visible) {
         list.push({ x: mekas.x, y: mekas.y, act: kissMekas });
+    }
+    if (celebration && mage.visible) {
+        list.push({ x: mage.x, y: mage.y, act: () => showDialogue([
+            { n: 'Котик-маг', t: 'С днём рождения, Буба! Моё фирменное поздравительное заклинание:' },
+            { n: 'Котик-маг', t: '«Пусть миска твоя никогда не пустеет, а солнечное пятно на полу всегда будет ТВОИМ!» ✦' },
+            { n: 'Котик-маг', t: 'Это очень сильное колдунство. Сильнее только молочко перед сном.' },
+        ]) });
+    }
+    if (celebration && grandpa.visible) {
+        list.push({ x: grandpa.x, y: grandpa.y, act: () => showDialogue([
+            { n: 'Котик-дедушка', t: 'Кхе-кхе... В моё время поздравляли просто: тёрлись ушами!' },
+            { n: 'Котик-дедушка', t: 'Иди сюда, внученька! *трётся ухом* С днём рождения!' },
+            { n: 'Котик-дедушка', t: 'А попкорн уже заряжен. Праздничный залп по моей команде! Кхе-кхе... ОГОНЬ!' },
+        ]) });
     }
     for (const b of buildings) {
         const doorX = b.mage ? b.x + 6 : b.x + b.w / 2;
@@ -2852,7 +2960,8 @@ addEventListener('keydown', (e) => {
         // С кукурузомётом Пробел — выстрел в сторону взгляда (чаща и финальный бой)
         if ((game.loc === 'thicket' || (game.loc === 'lair' && (lair.stage === 'phase1' || lair.stage === 'phase3')))
             && game.mode === 'explore' && k === ' ' && thicket.hasGun) {
-            thicketShoot(player.flip ? Math.PI : 0);
+            if (lair.carryBomb && game.loc === 'lair') throwBomb(player.flip ? Math.PI : 0);
+            else thicketShoot(player.flip ? Math.PI : 0);
             return;
         }
         if (game.mode === 'explore' && now >= interactLockUntil) {
@@ -2871,7 +2980,9 @@ cv.addEventListener('mousedown', (e) => {
     const canShoot = game.loc === 'thicket' || (game.loc === 'lair' && (lair.stage === 'phase1' || lair.stage === 'phase3'));
     if (canShoot && game.mode === 'explore' && !dlg.active && !overlayOpen && thicket.hasGun) {
         mouseToWorld(e);
-        thicketShoot(Math.atan2(aim.y - (player.y - 18), aim.x - player.x));
+        const ang = Math.atan2(aim.y - (player.y - 18), aim.x - player.x);
+        if (lair.carryBomb && game.loc === 'lair') throwBomb(ang);
+        else thicketShoot(ang);
     }
 });
 addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
@@ -2930,12 +3041,16 @@ function update() {
     if (game.loc === 'lair') updateLair();
     updatePets();
 
-    // Праздничные фейерверки
+    // Праздничные фейерверки — часто и много
     if (celebration && game.loc === 'city') {
-        if (!fireworks.length || now - fireworks[fireworks.length - 1].t0 > 700) {
-            const cols = ['#ff6f91', '#ffd166', '#6fc3ff', '#9bde7e', '#c77dff'];
-            fireworks.push({ x: 500 + Math.random() * 550, y: 180 + Math.random() * 220, t0: now, col: cols[Math.floor(Math.random() * cols.length)] });
-            if (fireworks.length > 6) fireworks.shift();
+        if (!fireworks.length || now - fireworks[fireworks.length - 1].t0 > 380) {
+            const cols = ['#ff6f91', '#ffd166', '#6fc3ff', '#9bde7e', '#c77dff', '#ff9e6f', '#ff5f7a'];
+            fireworks.push({
+                x: 350 + Math.random() * 850, y: 140 + Math.random() * 280, t0: now,
+                col: cols[Math.floor(Math.random() * cols.length)],
+                big: Math.random() < 0.35,
+            });
+            if (fireworks.length > 14) fireworks.shift();
         }
     }
 
@@ -3395,16 +3510,26 @@ function render() {
             g.fillStyle = '#ffd166';
             g.beginPath(); g.arc(CX - 8.5 + i * 9, CY - 64 + Math.sin(now * 0.01 + i) * 1.5, 3, 0, 7); g.fill();
         }
-        // Фейерверки
+        // Фейерверки: яркие, с ореолом и белой вспышкой в центре
         for (const f of fireworks) {
-            const t = (now - f.t0) / 900;
+            const t = (now - f.t0) / 1100;
             if (t > 1) continue;
-            for (let i = 0; i < 14; i++) {
-                const a = i / 14 * 6.28;
-                const rr2 = t * 70;
+            const R = (f.big ? 130 : 85) * t;
+            const nRays = f.big ? 26 : 20;
+            for (let i = 0; i < nRays; i++) {
+                const a = i / nRays * 6.28;
+                const px2 = sx(f.x + Math.cos(a) * R), py2 = sy(f.y + Math.sin(a) * R + t * t * 34);
+                g.globalAlpha = (1 - t) * 0.45;
                 g.fillStyle = f.col;
+                g.fillRect(px2 - 3, py2 - 3, 9, 9);
                 g.globalAlpha = 1 - t;
-                g.fillRect(sx(f.x + Math.cos(a) * rr2), sy(f.y + Math.sin(a) * rr2 + t * t * 30), 4, 4);
+                g.fillRect(px2, py2, 4, 4);
+                if (i % 3 === 0) { g.fillStyle = '#fff8e8'; g.fillRect(px2 + 1, py2 + 1, 2, 2); }
+            }
+            if (t < 0.35) {
+                g.globalAlpha = (0.35 - t) * 2.4;
+                g.fillStyle = '#fff8e8';
+                g.beginPath(); g.arc(sx(f.x), sy(f.y), 10 + t * 40, 0, 7); g.fill();
             }
             g.globalAlpha = 1;
         }
